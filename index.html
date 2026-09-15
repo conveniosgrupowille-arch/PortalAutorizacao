@@ -3231,7 +3231,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       titulo: 'Área restrita — Faturamento',
       descricao: 'Esta área contém valores e é restrita ao setor de faturamento. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_faturamento',
-      nomes: ['Andreia', 'Artur', 'Carolline', 'Isolete Salus', 'Eduarda Salus', 'Sandra Salus'],
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Gabriel', 'Isolete Salus', 'Eduarda Salus', 'Sandra Salus'],
       carregarDados: function(nome, senha){
         return Promise.all([
           sb.rpc('pr_get_procedimentos', { p_nome: nome, p_senha: senha }),
@@ -3258,7 +3258,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       titulo: 'Área restrita — Autorização de Exames',
       descricao: 'Esta área contém valores e é restrita. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_exames',
-      nomes: ['Andreia', 'Artur', 'Carolline', 'Maria', 'Franciely', 'Suiane', 'Isolete Salus'],
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Gabriel', 'Maria', 'Franciely', 'Suiane', 'Isolete Salus'],
       carregarDados: function(nome, senha){
         return Promise.all([
           sb.rpc('ex_get_convenios', { p_nome: nome, p_senha: senha }),
@@ -3278,7 +3278,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       titulo: 'Área restrita — Autorização de Cirurgias',
       descricao: 'Esta área é restrita. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_autorizacao',
-      nomes: ['Andreia', 'Artur', 'Carolline', 'Maria C', 'Marcelly', 'Tatiane', 'Dulcy', 'Fabiane'],
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Gabriel', 'Maria C', 'Marcelly', 'Tatiane', 'Dulcy', 'Fabiane'],
       carregarDados: function(nome, senha){
         return sb.rpc('az_get_procedimentos', { p_nome: nome, p_senha: senha }).then(function(res){
           if(res.error) throw res.error;
