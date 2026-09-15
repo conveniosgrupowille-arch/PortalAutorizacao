@@ -635,11 +635,11 @@
   .hub-modal-icone .material-symbols-outlined{font-size:21px;}
   .hub-modal h3{font-size:16px; margin:0 0 6px;}
   .hub-modal p{font-size:12.5px; color:var(--gray-500); margin:0 0 16px; line-height:1.5;}
-  .hub-modal input[type="password"], .hub-modal input[type="text"]{
+  .hub-modal input[type="password"], .hub-modal input[type="text"], .hub-modal select{
     width:100%; padding:10px 12px; border:1.5px solid var(--gray-200); border-radius:8px; font-size:14px;
-    margin-bottom:10px; box-sizing:border-box; font-family:'IBM Plex Mono', monospace;
+    margin-bottom:10px; box-sizing:border-box; font-family:'IBM Plex Mono', monospace; background:var(--white);
   }
-  .hub-modal input[type="password"]:focus, .hub-modal input[type="text"]:focus{outline:none; border-color:var(--teal-500);}
+  .hub-modal input[type="password"]:focus, .hub-modal input[type="text"]:focus, .hub-modal select:focus{outline:none; border-color:var(--teal-500);}
   .hub-modal-erro{color:var(--red-600); font-size:12.5px; margin:-2px 0 12px;}
   .hub-modal-acoes{display:flex; gap:10px; justify-content:flex-end;}
   .hub-modal-acoes button{
@@ -772,7 +772,7 @@
     <div class="hub-modal-icone"><span class="material-symbols-outlined">lock</span></div>
     <h3 id="senha-titulo">Área restrita</h3>
     <p id="senha-descricao">Esta área é restrita. Informe seu nome e senha para continuar.</p>
-    <input type="text" id="senha-nome" placeholder="Seu nome" autocomplete="off" />
+    <select id="senha-nome"><option value="">Selecione seu nome…</option></select>
     <div style="position:relative;">
       <input type="password" id="senha-input" placeholder="Senha" autocomplete="off" style="padding-right:40px;" />
       <button type="button" id="senha-olho" title="Mostrar/ocultar senha" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:4px; color:var(--gray-500); display:flex;">
@@ -3219,6 +3219,7 @@ renderResult();
       titulo: 'Área restrita — Faturamento',
       descricao: 'Esta área contém valores e é restrita ao setor de faturamento. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_faturamento',
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Isolete Salus', 'Eduarda Salus', 'Sandra Salus'],
       carregarDados: function(nome, senha){
         return Promise.all([
           sb.rpc('pr_get_procedimentos', { p_nome: nome, p_senha: senha }),
@@ -3245,6 +3246,7 @@ renderResult();
       titulo: 'Área restrita — Autorização de Exames',
       descricao: 'Esta área contém valores e é restrita. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_exames',
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Maria', 'Franciely', 'Suiane', 'Isolete Salus'],
       carregarDados: function(nome, senha){
         return sb.rpc('ex_get_convenios', { p_nome: nome, p_senha: senha }).then(function(res){
           if(res.error) throw res.error;
@@ -3259,6 +3261,7 @@ renderResult();
       titulo: 'Área restrita — Autorização de Cirurgias',
       descricao: 'Esta área é restrita. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_autorizacao',
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Maria C', 'Marcelly', 'Tatiane', 'Dulcy', 'Fabiane'],
       carregarDados: function(){ return Promise.resolve(); },
     },
   };
@@ -3309,7 +3312,8 @@ renderResult();
     pendingAreaKey = areaKey;
     senhaTitulo.textContent = area.titulo;
     senhaDescricao.textContent = area.descricao;
-    senhaNome.value = '';
+    senhaNome.innerHTML = '<option value="">Selecione seu nome…</option>' +
+      area.nomes.slice().sort().map(function(n){ return '<option value="' + n.replace(/"/g,'&quot;') + '">' + n + '</option>'; }).join('');
     senhaInput.value = '';
     senhaErro.classList.add('hub-oculto');
     mostrar(overlay);
