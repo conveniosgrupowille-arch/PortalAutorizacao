@@ -950,7 +950,7 @@ function renderConvenios(){
   const grid = root.querySelector('#convenioGrid');
   grid.innerHTML = '';
   CONVENIOS.forEach(conv => {
-    const count = ORDER.filter(key => DATA[key].convenios[conv]).length;
+    const count = ORDER.filter(key => (DATA[key] || {}).convenios && DATA[key].convenios[conv]).length;
     const btn = document.createElement('button');
     btn.className = 'chip' + (selConvenio === conv ? ' selected' : '');
     btn.innerHTML = `<span class="chip-name">${conv}</span><span class="chip-code mono">${count} cirurgia(s)</span>`;
@@ -997,7 +997,7 @@ function renderCirurgias(){
   searchBox.style.display = '';
   clearBtn.style.display = selCirurgias.size > 0 ? '' : 'none';
 
-  const available = ORDER.filter(key => DATA[key].convenios[selConvenio]);
+  const available = ORDER.filter(key => (DATA[key] || {}).convenios && DATA[key].convenios[selConvenio]);
   help.textContent = (selCirurgias.size > 0 ? selCirurgias.size + ' selecionada(s) de ' : '') +
                       available.length + ' cirurgia(s) cadastrada(s) para ' + selConvenio;
 
@@ -1516,6 +1516,7 @@ function renderComparativoGrid(){
   const term = comparativoSearchTerm.trim().toLowerCase();
   const keys = ORDER.filter(key => {
     const c = DATA[key];
+    if(!c) return false;
     if(!term) return true;
     return c.nome.toLowerCase().includes(term) || (c.codigo_tuss || '').includes(term);
   });
@@ -1755,7 +1756,7 @@ function renderConvenios(){
   const grid = root.querySelector('#convenioGrid');
   grid.innerHTML = '';
   CONVENIOS.forEach(conv => {
-    const count = ORDER.filter(key => DATA[key].convenios[conv]).length;
+    const count = ORDER.filter(key => (DATA[key] || {}).convenios && DATA[key].convenios[conv]).length;
     const btn = document.createElement('button');
     btn.className = 'chip' + (selConvenio === conv ? ' selected' : '');
     btn.innerHTML = `<span class="chip-name">${conv}</span><span class="chip-code mono">${count} cirurgia(s)</span>`;
@@ -1802,7 +1803,7 @@ function renderCirurgias(){
   searchBox.style.display = '';
   clearBtn.style.display = selCirurgias.size > 0 ? '' : 'none';
 
-  const available = ORDER.filter(key => DATA[key].convenios[selConvenio]);
+  const available = ORDER.filter(key => (DATA[key] || {}).convenios && DATA[key].convenios[selConvenio]);
   help.textContent = (selCirurgias.size > 0 ? selCirurgias.size + ' selecionada(s) de ' : '') +
                       available.length + ' cirurgia(s) cadastrada(s) para ' + selConvenio;
 
@@ -2774,7 +2775,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       return;
     }
     lista.forEach(conv => {
-      const count = DATA_EXAMES[conv].length;
+      const count = (DATA_EXAMES[conv] || []).length;
       const btn = document.createElement('button');
       btn.className = 'chip' + (selConvenio === conv ? ' selected' : '');
       btn.innerHTML = `<span class="chip-name">${conv}</span><span class="chip-code mono">${count} exame(s)</span>`;
