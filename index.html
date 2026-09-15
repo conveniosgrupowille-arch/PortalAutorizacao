@@ -2327,10 +2327,13 @@ renderResult();
   const dateSpan = root.querySelector('#dateSpanExames');
   if(dateSpan) dateSpan.textContent = ULTIMA_ATUALIZACAO_EXAMES;
 
-  let totalLinhas = 0;
-  CONVENIOS_EXAMES.forEach(c => { totalLinhas += DATA_EXAMES[c].length; });
-  const footerTotal = root.querySelector('#totalExamesFooter');
-  if(footerTotal) footerTotal.textContent = totalLinhas + ' itens de exames cadastrados em ' + CONVENIOS_EXAMES.length + ' convênios.';
+  function atualizarFooterExames(){
+    let totalLinhas = 0;
+    CONVENIOS_EXAMES.forEach(c => { totalLinhas += (DATA_EXAMES[c] || []).length; });
+    const footerTotal = root.querySelector('#totalExamesFooter');
+    if(footerTotal) footerTotal.textContent = totalLinhas + ' itens de exames cadastrados em ' + CONVENIOS_EXAMES.length + ' convênios.';
+  }
+  atualizarFooterExames();
 
   const chavesPacotes = Object.keys(PACOTES_EXAMES);
   const tabCount = root.querySelector('#pacotesTabCount');
@@ -3181,6 +3184,7 @@ renderResult();
     DATA_EXAMES = dataExames || {};
     renderConvenios();
     renderLista();
+    atualizarFooterExames();
   };
 })();
 
