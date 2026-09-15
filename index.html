@@ -3244,6 +3244,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
           var dataProcedimentos = {};
           (procRes.data || []).forEach(function(row){
             dataProcedimentos[row.nome] = {
+              nome: row.nome,
               codigo_tuss: row.codigo_tuss,
               titulo: row.titulo,
               sobre: row.sobre,
@@ -3286,6 +3287,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
           var dataProcedimentos = {};
           (res.data || []).forEach(function(row){
             dataProcedimentos[row.nome] = {
+              nome: row.nome,
               codigo_tuss: row.codigo_tuss,
               titulo: row.titulo,
               sobre: row.sobre,
