@@ -773,7 +773,12 @@
     <h3 id="senha-titulo">Área restrita</h3>
     <p id="senha-descricao">Esta área é restrita. Informe seu nome e senha para continuar.</p>
     <input type="text" id="senha-nome" placeholder="Seu nome" autocomplete="off" />
-    <input type="password" id="senha-input" placeholder="Senha" autocomplete="off" />
+    <div style="position:relative;">
+      <input type="password" id="senha-input" placeholder="Senha" autocomplete="off" style="padding-right:40px;" />
+      <button type="button" id="senha-olho" title="Mostrar/ocultar senha" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:4px; color:var(--gray-500); display:flex;">
+        <span class="material-symbols-outlined" id="senha-olho-icone" style="font-size:20px;">visibility</span>
+      </button>
+    </div>
     <div id="senha-erro" class="hub-modal-erro hub-oculto">Nome ou senha incorretos. Tente novamente.</div>
     <div class="hub-modal-acoes">
       <button type="button" id="senha-cancelar">Cancelar</button>
@@ -3198,6 +3203,14 @@ renderResult();
   var senhaInput = document.getElementById('senha-input');
   var senhaErro = document.getElementById('senha-erro');
   var senhaConfirmarBtn = document.getElementById('senha-confirmar');
+  var senhaOlhoBtn = document.getElementById('senha-olho');
+  var senhaOlhoIcone = document.getElementById('senha-olho-icone');
+
+  senhaOlhoBtn.addEventListener('click', function(){
+    var mostrando = senhaInput.type === 'text';
+    senhaInput.type = mostrando ? 'password' : 'text';
+    senhaOlhoIcone.textContent = mostrando ? 'visibility' : 'visibility_off';
+  });
   var telas = [chooser, overlay, viewFat, viewAz, viewExames];
 
   var AREAS = {
