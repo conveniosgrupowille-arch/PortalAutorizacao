@@ -3326,11 +3326,13 @@ renderResult();
     }
     senhaErro.classList.add('hub-oculto');
     mostrarCarregando(true);
-    entrarNaArea(pendingAreaKey, nome, senha).catch(function(){
-      senhaErro.textContent = 'Nome ou senha incorretos. Tente novamente.';
+    entrarNaArea(pendingAreaKey, nome, senha).catch(function(err){
+      var msg = (err && (err.message || err.error_description || err.hint)) || String(err);
+      senhaErro.textContent = 'Erro: ' + msg;
       senhaErro.classList.remove('hub-oculto');
       senhaInput.value = '';
       senhaInput.focus();
+      console.error('Erro no login:', err);
     }).finally(function(){ mostrarCarregando(false); });
   }
 
