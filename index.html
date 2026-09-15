@@ -3280,7 +3280,7 @@ renderResult();
     return sb.rpc('pa_login', { p_nome: nome, p_area: areaKey, p_senha: senha }).then(function(res){
       if(res.error) throw res.error;
       // log de acesso nao trava a entrada se falhar
-      sb.rpc('pa_log_access', { p_nome: nome, p_area: areaKey, p_senha: senha, p_details: navigator.userAgent })
+      Promise.resolve(sb.rpc('pa_log_access', { p_nome: nome, p_area: areaKey, p_senha: senha, p_details: navigator.userAgent }))
         .catch(function(){});
       return area.carregarDados(nome, senha).then(function(){
         sessionStorage.setItem(area.chaveSessao, JSON.stringify({ nome: nome, senha: senha }));
