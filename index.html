@@ -1692,29 +1692,54 @@ window.__setDataFaturamento = function(dataProcedimentos, pacotes){
     <div class="chip-grid" id="convenioGrid"></div>
   </div>
 
-  <div class="step" id="step2">
-    <div class="step-head">
-      <span class="step-num">2</span>
-      <h2>Cirurgia</h2>
-      <span class="step-help" id="cirurgiaHelp"></span>
-      <button type="button" class="clear-btn" id="clearCirurgias" style="display:none;">Limpar seleção</button>
-    </div>
-    <p class="multi-hint">Pode selecionar mais de uma cirurgia quando forem realizadas na mesma cirurgia (ex.: vitrectomia + facectomia).</p>
-    <div class="action-buttons">
-      <button type="button" class="btn-limpar" id="btnLimpar" style="display:none;" title="Limpar todas as cirurgias selecionadas">Limpar</button>
-      <button type="button" class="btn-concluir" id="btnConcluir" style="display:none;" title="Concluir seleção e mostrar autorização">Concluir</button>
-    </div>
-    <input type="text" id="searchCirurgia" class="search-input" placeholder="Buscar por nome ou código TUSS…">
-    <div class="chip-grid" id="cirurgiaGrid"></div>
-  </div>
-
   <div class="step">
-    <div class="step-head">
-      <span class="step-num">3</span>
-      <h2>O que autorizar</h2>
+    <div class="result" id="resultVazioAutorizacao">
+      <div class="result-empty">Selecione o convênio acima para ver as opções.</div>
     </div>
-    <div class="result" id="resultBox">
-      <div class="result-empty">Selecione o convênio e uma ou mais cirurgias para ver a lista de autorização.</div>
+
+    <div class="convenio-layout" id="convenioLayoutAutorizacao" style="display:none;">
+      <nav class="convenio-menu" id="convenioMenuAutorizacao">
+        <button type="button" class="convenio-menu-item active" data-painel="cirurgias"><span class="cmi-icon">🩺</span>Autorização de Cirurgias</button>
+        <button type="button" class="convenio-menu-item" data-painel="login"><span class="cmi-icon">🔑</span>Login e senha</button>
+        <button type="button" class="convenio-menu-item" data-painel="checklist"><span class="cmi-icon">✅</span>Checklist Atendimento</button>
+        <button type="button" class="convenio-menu-item" data-painel="contatos"><span class="cmi-icon">📞</span>Contatos e Setores</button>
+        <button type="button" class="convenio-menu-item" data-painel="avisos"><span class="cmi-icon">📋</span>Avisos e Comunicados</button>
+      </nav>
+      <div class="convenio-conteudo">
+        <div class="convenio-painel" id="painelCirurgiasConvenio">
+
+          <div class="step" id="step2">
+            <div class="step-head">
+              <span class="step-num">2</span>
+              <h2>Cirurgia</h2>
+              <span class="step-help" id="cirurgiaHelp"></span>
+              <button type="button" class="clear-btn" id="clearCirurgias" style="display:none;">Limpar seleção</button>
+            </div>
+            <p class="multi-hint">Pode selecionar mais de uma cirurgia quando forem realizadas na mesma cirurgia (ex.: vitrectomia + facectomia).</p>
+            <div class="action-buttons">
+              <button type="button" class="btn-limpar" id="btnLimpar" style="display:none;" title="Limpar todas as cirurgias selecionadas">Limpar</button>
+              <button type="button" class="btn-concluir" id="btnConcluir" style="display:none;" title="Concluir seleção e mostrar autorização">Concluir</button>
+            </div>
+            <input type="text" id="searchCirurgia" class="search-input" placeholder="Buscar por nome ou código TUSS…">
+            <div class="chip-grid" id="cirurgiaGrid"></div>
+          </div>
+
+          <div class="step" id="step3">
+            <div class="step-head">
+              <span class="step-num">3</span>
+              <h2>O que autorizar</h2>
+            </div>
+            <div class="result" id="resultBox">
+              <div class="result-empty">Selecione o convênio e uma ou mais cirurgias para ver a lista de autorização.</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="convenio-painel hub-oculto" id="painelLoginConvenioAz"></div>
+        <div class="convenio-painel hub-oculto" id="painelChecklistConvenioAz"></div>
+        <div class="convenio-painel hub-oculto" id="painelContatosConvenioAz"></div>
+        <div class="convenio-painel hub-oculto" id="painelAvisosConvenioAz"></div>
+      </div>
     </div>
   </div>
 
@@ -1768,13 +1793,18 @@ function renderConvenios(){
       const grid = root.querySelector('#cirurgiaGrid');
       const searchBox = root.querySelector('#searchCirurgia');
       const step2 = root.querySelector('#step2');
-      const step3 = root.querySelector('.step:nth-of-type(3)');
+      const step3 = root.querySelector('#step3');
       
       if(grid) grid.style.display = '';
       if(searchBox) searchBox.style.display = '';
       step2.classList.remove('completed');
       step2.classList.add('active');
       step3.classList.remove('active');
+
+      const layoutAz = root.querySelector('#convenioLayoutAutorizacao');
+      const vazioAz = root.querySelector('#resultVazioAutorizacao');
+      if(layoutAz) layoutAz.style.display = '';
+      if(vazioAz) vazioAz.style.display = 'none';
       
       renderConvenios();
       renderCirurgias();
@@ -1864,7 +1894,7 @@ root.querySelector('#btnConcluir').addEventListener('click', () => {
   const grid = root.querySelector('#cirurgiaGrid');
   const searchBox = root.querySelector('#searchCirurgia');
   const step2 = root.querySelector('#step2');
-  const step3 = root.querySelector('.step:nth-of-type(3)');
+  const step3 = root.querySelector('#step3');
   const resultBox = root.querySelector('#resultBox');
   
   // Recolhe a grid de cirurgias e barra de pesquisa
@@ -1898,11 +1928,16 @@ root.querySelector('#btnLimpar').addEventListener('click', () => {
 
   const step1 = root.querySelector('#step1');
   const step2 = root.querySelector('#step2');
-  const step3 = root.querySelector('.step:nth-of-type(3)');
+  const step3 = root.querySelector('#step3');
 
   step1.classList.add('active');
   step2.classList.remove('active', 'completed');
   step3.classList.remove('active');
+
+  const layoutAzReset = root.querySelector('#convenioLayoutAutorizacao');
+  const vazioAzReset = root.querySelector('#resultVazioAutorizacao');
+  if(layoutAzReset) layoutAzReset.style.display = 'none';
+  if(vazioAzReset) vazioAzReset.style.display = '';
 
   const grid = root.querySelector('#cirurgiaGrid');
   const searchBox = root.querySelector('#searchCirurgia');
@@ -2103,6 +2138,132 @@ window.__setDataAutorizacao = function(dataProcedimentos){
   renderResult();
 };
 
+// ============================================
+// MENU POR CONVENIO (Login e senha / Checklist Atendimento / Contatos e
+// Setores / Avisos e Comunicados) - pedido do usuario, 16/09/2026: mesmo
+// menu que ja existe no card de Exames. Login/Checklist/Contatos reusam os
+// MESMOS dados de Exames (window.PORTAL_ACESSO_EXAMES etc, expostos la' no
+// script de Exames) porque login/telefone do convenio nao muda conforme o
+// uso (exame ou autorizacao) - so' o mural de Avisos e' proprio daqui.
+// ============================================
+const CONVENIO_ALIAS_PARA_EXAMES_AZ = {
+  'SELECT': 'SELECT SAUDE',
+  'MEDISERVECE': 'MEDSERVICE',
+  'UNIMED': 'UNIMED ESTADUAL'
+};
+function chaveExamesAz(conv){
+  return CONVENIO_ALIAS_PARA_EXAMES_AZ[conv] || conv;
+}
+
+let painelAtivoConvenioAz = 'cirurgias';
+const convenioMenuButtonsAz = Array.from(root.querySelectorAll('#convenioMenuAutorizacao .convenio-menu-item'));
+function atualizarPainelConvenioAz(){
+  convenioMenuButtonsAz.forEach(b => b.classList.toggle('active', b.dataset.painel === painelAtivoConvenioAz));
+  root.querySelector('#painelCirurgiasConvenio').classList.toggle('hub-oculto', painelAtivoConvenioAz !== 'cirurgias');
+  root.querySelector('#painelLoginConvenioAz').classList.toggle('hub-oculto', painelAtivoConvenioAz !== 'login');
+  root.querySelector('#painelChecklistConvenioAz').classList.toggle('hub-oculto', painelAtivoConvenioAz !== 'checklist');
+  root.querySelector('#painelContatosConvenioAz').classList.toggle('hub-oculto', painelAtivoConvenioAz !== 'contatos');
+  root.querySelector('#painelAvisosConvenioAz').classList.toggle('hub-oculto', painelAtivoConvenioAz !== 'avisos');
+  if(painelAtivoConvenioAz === 'login') renderLoginConvenioAz();
+  if(painelAtivoConvenioAz === 'checklist') renderChecklistConvenioAz();
+  if(painelAtivoConvenioAz === 'contatos') renderContatosConvenioAz();
+  if(painelAtivoConvenioAz === 'avisos' && window.HubComunicados){
+    window.HubComunicados.renderPainelEmbutido(root.querySelector('#painelAvisosConvenioAz'), 'hub_area_autorizacao', selConvenio);
+  }
+}
+convenioMenuButtonsAz.forEach(btn => {
+  btn.addEventListener('click', () => {
+    painelAtivoConvenioAz = btn.dataset.painel;
+    atualizarPainelConvenioAz();
+  });
+});
+
+function renderLoginConvenioAz(){
+  const box = root.querySelector('#painelLoginConvenioAz');
+  const head = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Login e senha</p>
+        <h3>Acesso ao portal do convênio</h3>
+      </div>
+      <span class="rh-convenio">${selConvenio}</span>
+    </div>`;
+  const contas = (window.PORTAL_ACESSO_EXAMES || {})[chaveExamesAz(selConvenio)];
+  if(!contas || contas.length === 0){
+    box.innerHTML = head + `<div class="result-empty">Acesso ainda não cadastrado para ${selConvenio}.</div>`;
+    return;
+  }
+  const cards = contas.map(c => {
+    const portalBtn = c.url ? `<a class="btn-abrir-portal" href="${c.url}" target="_blank" rel="noopener">Abrir portal ↗</a>` : '';
+    let linhas = '';
+    if(c.cpfCnpj) linhas += `<div class="login-row"><span class="login-label">CPF/CNPJ</span><span class="login-valor">${c.cpfCnpj}</span></div>`;
+    if(c.email) linhas += `<div class="login-row"><span class="login-label">E-mail cadastro</span><span class="login-valor">${c.email}</span></div>`;
+    if(c.usuario) linhas += `<div class="login-row"><span class="login-label">Usuário</span><span class="login-valor">${c.usuario}</span></div>`;
+    if(c.senha) linhas += `<div class="login-row"><span class="login-label">Senha</span><span class="login-valor">${c.senha}</span></div>`;
+    if(c.obs) linhas += `<div class="login-row"><span class="login-label">Observações</span><span class="login-valor">${c.obs}</span></div>`;
+    return `
+      <div class="login-card">
+        ${c.rotulo ? `<p class="login-rotulo">${c.rotulo}</p>` : ''}
+        ${linhas}
+        ${portalBtn}
+      </div>`;
+  }).join('');
+  box.innerHTML = head + cards;
+}
+
+function renderChecklistConvenioAz(){
+  const box = root.querySelector('#painelChecklistConvenioAz');
+  const head = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Checklist Atendimento</p>
+        <h3>Passo a passo na recepção</h3>
+      </div>
+      <span class="rh-convenio">${selConvenio}</span>
+    </div>`;
+  const dados = (window.CHECKLIST_ATENDIMENTO_EXAMES || {})[chaveExamesAz(selConvenio)];
+  if(!dados){
+    box.innerHTML = head + `<div class="result-empty">Checklist ainda não cadastrado para ${selConvenio} — pendente do manual do convênio.</div>`;
+    return;
+  }
+  let corpo = '';
+  if(dados.autorizacaoPrevia) corpo += `<div class="checklist-secao"><h4>Autorização prévia</h4><p>${dados.autorizacaoPrevia}</p></div>`;
+  if(dados.documentos && dados.documentos.length) corpo += `<div class="checklist-secao"><h4>Documentos exigidos do paciente</h4><ul>${dados.documentos.map(d => `<li>${d}</li>`).join('')}</ul></div>`;
+  if(dados.comoSolicitar) corpo += `<div class="checklist-secao"><h4>Como/onde solicitar</h4><p>${dados.comoSolicitar}</p></div>`;
+  if(dados.seNegado) corpo += `<div class="checklist-secao"><h4>Se a autorização for negada</h4><p>${dados.seNegado}</p></div>`;
+  if(dados.observacoes) corpo += `<div class="checklist-secao"><h4>Observações</h4><p>${dados.observacoes}</p></div>`;
+  box.innerHTML = head + (corpo || '<div class="result-empty">Checklist ainda não detalhado para este convênio.</div>');
+}
+
+function renderContatosConvenioAz(){
+  const box = root.querySelector('#painelContatosConvenioAz');
+  const head = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Contatos e Setores</p>
+        <h3>Telefones úteis do convênio</h3>
+      </div>
+      <span class="rh-convenio">${selConvenio}</span>
+    </div>`;
+  const contatos = (window.CONTATOS_SETORES_EXAMES || {})[chaveExamesAz(selConvenio)];
+  if(!contatos || contatos.length === 0){
+    box.innerHTML = head + `<div class="result-empty">Nenhum contato cadastrado ainda para ${selConvenio}.</div>`;
+    return;
+  }
+  const cards = contatos.map(c => {
+    let linhas = '';
+    if(c.telefone) linhas += `<div class="login-row"><span class="login-label">Telefone</span><span class="login-valor">${c.telefone}</span></div>`;
+    if(c.finalidade) linhas += `<div class="login-row"><span class="login-label">Para quê</span><span class="login-valor">${c.finalidade}</span></div>`;
+    if(c.obs) linhas += `<div class="login-row"><span class="login-label">Observações</span><span class="login-valor">${c.obs}</span></div>`;
+    return `
+      <div class="login-card">
+        ${c.setor ? `<p class="login-rotulo">${c.setor}</p>` : ''}
+        ${linhas}
+      </div>`;
+  }).join('');
+  box.innerHTML = head + cards;
+}
+
 })();
 
 </script>
@@ -2155,6 +2316,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
         <button type="button" class="convenio-menu-item active" data-painel="tabela"><span class="cmi-icon">📋</span>Tabelas de Exames e valores</button>
         <button type="button" class="convenio-menu-item" data-painel="checklist"><span class="cmi-icon">✅</span>Checklist Atendimento</button>
         <button type="button" class="convenio-menu-item" data-painel="contatos"><span class="cmi-icon">📞</span>Contatos e Setores</button>
+        <button type="button" class="convenio-menu-item" data-painel="avisos"><span class="cmi-icon">📋</span>Avisos e Comunicados</button>
       </nav>
       <div class="convenio-conteudo">
         <div class="convenio-painel" id="painelTabelaConvenio">
@@ -2165,6 +2327,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
         <div class="convenio-painel hub-oculto" id="painelChecklistConvenio"></div>
         <div class="convenio-painel hub-oculto" id="painelLoginConvenio"></div>
         <div class="convenio-painel hub-oculto" id="painelContatosConvenio"></div>
+        <div class="convenio-painel hub-oculto" id="painelAvisosConvenio"></div>
       </div>
     </div>
   </div>
@@ -2332,6 +2495,12 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       { setor: 'Análise Intercâmbio Autorizações', telefone: '47 9708-0170', finalidade: 'Cancelamento de guias vencidas' }
     ]
   };
+  // Expostos pra Autorização de Cirurgias reaproveitar (mesmo login/contato do
+  // convênio, independente de ser exame ou cirurgia) - pedido do usuário,
+  // 16/09/2026, ao pedir os mesmos menus por convênio no card de Autorização.
+  window.PORTAL_ACESSO_EXAMES = PORTAL_ACESSO_EXAMES;
+  window.CONTATOS_SETORES_EXAMES = CONTATOS_SETORES_EXAMES;
+  window.CHECKLIST_ATENDIMENTO_EXAMES = CHECKLIST_ATENDIMENTO_EXAMES;
   const dateSpan = root.querySelector('#dateSpanExames');
   if(dateSpan) dateSpan.textContent = ULTIMA_ATUALIZACAO_EXAMES;
 
@@ -2491,9 +2660,13 @@ window.__setDataAutorizacao = function(dataProcedimentos){
     root.querySelector('#painelChecklistConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'checklist');
     root.querySelector('#painelLoginConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'login');
     root.querySelector('#painelContatosConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'contatos');
+    root.querySelector('#painelAvisosConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'avisos');
     if(painelAtivoConvenio === 'checklist') renderChecklistConvenio();
     if(painelAtivoConvenio === 'login') renderLoginConvenio();
     if(painelAtivoConvenio === 'contatos') renderContatosConvenio();
+    if(painelAtivoConvenio === 'avisos' && window.HubComunicados){
+      window.HubComunicados.renderPainelEmbutido(root.querySelector('#painelAvisosConvenio'), 'hub_area_exames', selConvenio);
+    }
   }
   convenioMenuButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2828,7 +3001,7 @@ window.__setDataAutorizacao = function(dataProcedimentos){
     searchBox.style.display = '';
     renderPacotesInlineConvenio();
 
-    const items = DATA_EXAMES[selConvenio];
+    const items = DATA_EXAMES[selConvenio] || [];
     const term = searchTerm.trim().toLowerCase();
     const filtered = items.filter(it => {
       if(!term) return true;
@@ -3322,6 +3495,11 @@ window.__setDataAutorizacao = function(dataProcedimentos){
       return area.carregarDados(nome, senha).then(function(){
         sessionStorage.setItem(area.chaveSessao, JSON.stringify({ nome: nome, senha: senha }));
         mostrar(area.view);
+        // Comunicado do Convênio (16/09/2026): so' nas areas Autorizacao e
+        // Exames, igual no portal antigo - Faturamento nao tem esse mural.
+        if((areaKey === 'autorizacao' || areaKey === 'exames') && window.HubComunicados){
+          window.HubComunicados.checarPendentes(area.chaveSessao);
+        }
       });
     });
   }
@@ -3387,6 +3565,227 @@ window.__setDataAutorizacao = function(dataProcedimentos){
   });
 })();
 
+</script>
+
+<style>
+  /* Comunicado do Convênio (16/09/2026) - portado do PORTAL HUB LASER.html
+     antigo, adaptado pra reusar o login que já existe no Portal Operacional
+     (hub_area_autorizacao / hub_area_exames) em vez de um login separado. */
+  .com-overlay{ position:fixed; inset:0; background:rgba(20,20,20,.55); z-index:9000; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .com-modal{ background:var(--white); border-radius:10px; padding:24px; width:100%; max-width:520px; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+  .com-modal h3{ margin:0 0 6px; font-size:18px; color:var(--gray-800); }
+  .com-sub{ margin:0 0 14px; font-size:13px; color:var(--gray-500); }
+  .com-label{ display:block; font-size:12.5px; font-weight:600; color:var(--gray-800); margin:12px 0 4px; }
+  .com-input{ width:100%; box-sizing:border-box; border:1px solid var(--gray-200); border-radius:6px; padding:8px 10px; font:inherit; font-size:14px; }
+  .com-textarea{ resize:vertical; font-family:inherit; }
+  .com-erro{ color:var(--red-600); font-size:13px; margin:8px 0 0; }
+  .com-botoes{ display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  .com-btn{ border-radius:6px; padding:9px 16px; font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; border:1px solid transparent; }
+  .com-btn-primario{ background:var(--teal-600); color:var(--white); }
+  .com-btn-primario:disabled{ opacity:.5; cursor:not-allowed; }
+  .com-btn-secundario{ background:var(--white); color:var(--gray-800); border-color:var(--gray-200); }
+  .com-badge-obrigatorio{ display:inline-block; background:#FDECC8; color:#92620A; font-size:11.5px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; border-radius:20px; padding:3px 10px; margin-bottom:10px; }
+  .com-texto{ background:var(--gray-100,#F5F6F7); border-radius:8px; padding:12px 14px; font-size:14px; line-height:1.5; color:var(--gray-800); margin:10px 0; white-space:normal; }
+  .com-check{ display:flex; align-items:center; gap:8px; font-size:14px; font-weight:600; color:var(--gray-800); margin-top:14px; cursor:pointer; }
+  .com-lista{ display:flex; flex-direction:column; gap:12px; margin:10px 0; }
+  .com-item{ border:1px solid var(--gray-200); border-radius:8px; padding:12px 14px; }
+  .com-item-inativo{ opacity:.55; }
+  .com-item-head{ display:flex; align-items:center; gap:8px; }
+  .com-item-convenio{ font-size:11px; font-weight:700; letter-spacing:.03em; color:var(--teal-700); text-transform:uppercase; }
+  .com-item-tag-inativo{ font-size:10.5px; color:var(--gray-500); border:1px solid var(--gray-200); border-radius:10px; padding:1px 7px; }
+  .com-item-titulo{ margin:4px 0 2px; font-size:15px; font-weight:700; color:var(--gray-800); }
+  .com-item-meta{ margin:0 0 8px; font-size:11.5px; color:var(--gray-500); }
+  .com-item-texto{ margin:0 0 8px; font-size:13.5px; line-height:1.5; color:var(--gray-800); }
+  .com-link-btn{ background:none; border:none; color:var(--red-600); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; padding:0; }
+</style>
+<script>
+(function(){
+  const SUPA_URL = 'https://ylalexswpruqfvinkhdl.supabase.co';
+  const SUPA_KEY = 'sb_publishable_Gj4D217YeW_puPB9ynf16g_shx1Oo9n';
+  const CONVENIOS_SUGESTAO = ["AMIL","BRADESCO","GEAP","LEVMED","MEDISERVICE","NOSSA SAUDE","SAUDE CAIXA","SC SAUDE","SELECT","SULAMERICA","UNIMED","POSTAL SAUDE"];
+
+  async function rpc(nome, payload){
+    const r = await fetch(`${SUPA_URL}/rest/v1/rpc/${nome}`, {
+      method:'POST',
+      headers:{'apikey':SUPA_KEY,'Authorization':`Bearer ${SUPA_KEY}`,'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!r.ok){
+      let msg = 'Erro de conexão';
+      try{ const j = await r.json(); msg = j.message || msg; }catch(e){}
+      throw new Error(msg);
+    }
+    if(r.status === 204) return null;
+    return r.json();
+  }
+
+  // Reusa a sessão já logada na área (hub_area_autorizacao / hub_area_exames)
+  // em vez de pedir login separado como na versão antiga do portal.
+  function getIdentidade(chaveSessao){
+    try{
+      const raw = sessionStorage.getItem(chaveSessao);
+      if(!raw) return null;
+      const s = JSON.parse(raw);
+      return (s && s.nome && s.senha) ? {nome:s.nome, senha:s.senha} : null;
+    }catch(e){ return null; }
+  }
+
+  function fmtData(iso){
+    const d = new Date(iso);
+    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  function escapeHtml(s){
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'comunicadosOverlay';
+  overlay.className = 'com-overlay hub-oculto';
+  overlay.innerHTML = '<div class="com-modal" id="comunicadosModalBox"></div>';
+  document.body.appendChild(overlay);
+
+  function abrirModal(html){
+    document.getElementById('comunicadosModalBox').innerHTML = html;
+    overlay.classList.remove('hub-oculto');
+  }
+  function fecharModal(){
+    overlay.classList.add('hub-oculto');
+  }
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) fecharModal(); });
+
+  // Popup obrigatório de comunicados pendentes - dispara logo após o login
+  // (pedido do usuário, 16/09/2026): marca "ciente" e confirma, um de cada
+  // vez, fecha sozinho quando acabar. So' checa uma vez por sessao de login
+  // (nao fica reabrindo toda vez que a view volta a ficar visivel).
+  const jaChecadoNestaSessao = {};
+  function checarPendentes(chaveSessao){
+    if(jaChecadoNestaSessao[chaveSessao]) return;
+    jaChecadoNestaSessao[chaveSessao] = true;
+    const auth = getIdentidade(chaveSessao);
+    if(!auth) return;
+    rpc('cm_get_comunicados_pendentes', {p_nome: auth.nome, p_senha: auth.senha}).then(pendentes => {
+      if(!pendentes || pendentes.length === 0) return;
+      mostrarPopupPendentes(auth, pendentes, 0);
+    }).catch(() => {});
+  }
+
+  function mostrarPopupPendentes(auth, lista, idx){
+    if(idx >= lista.length){ fecharModal(); return; }
+    const c = lista[idx];
+    abrirModal(`
+      <p class="com-badge-obrigatorio">Comunicado importante · ${idx+1} de ${lista.length}</p>
+      <h3>${escapeHtml(c.titulo)}</h3>
+      <p class="com-sub">${escapeHtml(c.convenio)} · publicado em ${fmtData(c.publicado_em)} por ${escapeHtml(c.publicado_por)}</p>
+      <div class="com-texto">${escapeHtml(c.texto).replace(/\n/g,'<br>')}</div>
+      <label class="com-check"><input type="checkbox" id="comCiente"> Li e estou ciente desta orientação.</label>
+      <div class="com-botoes">
+        <button type="button" class="com-btn com-btn-primario" id="comConfirmarLeitura" disabled>OK</button>
+      </div>
+    `);
+    const chk = document.getElementById('comCiente');
+    const btn = document.getElementById('comConfirmarLeitura');
+    chk.addEventListener('change', () => { btn.disabled = !chk.checked; });
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try{
+        await rpc('cm_marcar_comunicado_lido', {p_nome: auth.nome, p_senha: auth.senha, p_comunicado_id: c.id});
+      }catch(e){}
+      mostrarPopupPendentes(auth, lista, idx+1);
+    });
+  }
+
+  // Painel "Avisos e Comunicados" embutido no menu por convênio (não é modal)
+  // - lista os comunicados do convênio selecionado e permite publicar/desativar.
+  function renderPainelEmbutido(box, chaveSessao, convenioFiltro){
+    if(!box) return;
+    const auth = getIdentidade(chaveSessao);
+    if(!auth){
+      box.innerHTML = '<div class="result-empty">Faça login para ver os comunicados.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="result-empty">Carregando…</div>';
+    rpc('cm_get_comunicados_convenio', {p_nome: auth.nome, p_senha: auth.senha}).then(lista => {
+      const filtrada = convenioFiltro ? (lista || []).filter(c => c.convenio === convenioFiltro) : (lista || []);
+      renderListaEmbutida(box, auth, chaveSessao, convenioFiltro, filtrada);
+    }).catch(() => {
+      box.innerHTML = '<div class="result-empty">Não foi possível carregar os comunicados (sem conexão ou sessão expirada).</div>';
+    });
+  }
+
+  function renderListaEmbutida(box, auth, chaveSessao, convenioFiltro, lista){
+    const itens = lista.length === 0
+      ? `<p class="com-sub">Nenhum comunicado publicado ainda${convenioFiltro ? ' para ' + escapeHtml(convenioFiltro) : ''}.</p>`
+      : lista.map(c => `
+        <div class="com-item ${c.ativo ? '' : 'com-item-inativo'}">
+          <div class="com-item-head">
+            <span class="com-item-convenio">${escapeHtml(c.convenio)}</span>
+            ${c.ativo ? '' : '<span class="com-item-tag-inativo">inativo</span>'}
+          </div>
+          <p class="com-item-titulo">${escapeHtml(c.titulo)}</p>
+          <p class="com-item-meta">${fmtData(c.publicado_em)} · ${escapeHtml(c.publicado_por)} · ${c.total_leituras} leitura(s)</p>
+          <p class="com-item-texto">${escapeHtml(c.texto).replace(/\n/g,'<br>')}</p>
+          ${c.ativo ? `<button type="button" class="com-link-btn" data-desativar="${c.id}">Desativar</button>` : ''}
+        </div>
+      `).join('');
+    const idBtn = 'comNovoBtn-' + chaveSessao.replace(/[^a-zA-Z0-9]/g, '');
+    box.innerHTML = `
+      <div class="com-lista">${itens}</div>
+      <div class="com-botoes" style="justify-content:flex-start;">
+        <button type="button" class="com-btn com-btn-primario" id="${idBtn}">+ Publicar comunicado${convenioFiltro ? ' para ' + escapeHtml(convenioFiltro) : ''}</button>
+      </div>
+    `;
+    box.querySelectorAll('[data-desativar]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(!confirm('Desativar este comunicado? Ele some da lista de pendências mas fica no histórico.')) return;
+        try{
+          await rpc('cm_desativar_comunicado', {p_nome: auth.nome, p_senha: auth.senha, p_comunicado_id: Number(btn.dataset.desativar)});
+          renderPainelEmbutido(box, chaveSessao, convenioFiltro);
+        }catch(e){ alert('Erro ao desativar: ' + e.message); }
+      });
+    });
+    const novoBtn = box.querySelector('#' + idBtn);
+    if(novoBtn) novoBtn.addEventListener('click', () => renderFormPublicar(box, auth, chaveSessao, convenioFiltro));
+  }
+
+  function renderFormPublicar(box, auth, chaveSessao, convenioFiltro){
+    box.innerHTML = `
+      <h3 style="margin-top:0;">Publicar comunicado</h3>
+      <label class="com-label">Convênio</label>
+      <input type="text" id="comNovoConvenio" class="com-input" value="${escapeHtml(convenioFiltro || '')}" placeholder="Ex: BRADESCO" list="comConveniosList" />
+      <datalist id="comConveniosList">${CONVENIOS_SUGESTAO.map(c=>`<option value="${c}">`).join('')}</datalist>
+      <label class="com-label">Título</label>
+      <input type="text" id="comNovoTitulo" class="com-input" placeholder="Ex: Elegibilidade obrigatória no Autorize" />
+      <label class="com-label">Texto</label>
+      <textarea id="comNovoTexto" class="com-input com-textarea" rows="8"></textarea>
+      <p id="comNovoErro" class="com-erro hub-oculto"></p>
+      <div class="com-botoes">
+        <button type="button" class="com-btn com-btn-secundario" id="comNovoCancelar">Cancelar</button>
+        <button type="button" class="com-btn com-btn-primario" id="comNovoPublicar">Publicar</button>
+      </div>
+    `;
+    box.querySelector('#comNovoCancelar').addEventListener('click', () => renderPainelEmbutido(box, chaveSessao, convenioFiltro));
+    box.querySelector('#comNovoPublicar').addEventListener('click', async () => {
+      const convenio = box.querySelector('#comNovoConvenio').value.trim();
+      const titulo = box.querySelector('#comNovoTitulo').value.trim();
+      const texto = box.querySelector('#comNovoTexto').value.trim();
+      const erro = box.querySelector('#comNovoErro');
+      if(!convenio || !titulo || !texto){
+        erro.textContent = 'Preencha convênio, título e texto.';
+        erro.classList.remove('hub-oculto');
+        return;
+      }
+      try{
+        await rpc('cm_publicar_comunicado', {p_nome: auth.nome, p_senha: auth.senha, p_convenio: convenio.toUpperCase(), p_titulo: titulo, p_texto: texto});
+        renderPainelEmbutido(box, chaveSessao, convenioFiltro);
+      }catch(e){
+        erro.textContent = 'Erro ao publicar: ' + e.message;
+        erro.classList.remove('hub-oculto');
+      }
+    });
+  }
+
+  window.HubComunicados = { checarPendentes, renderPainelEmbutido };
+})();
 </script>
 </body>
 </html>
