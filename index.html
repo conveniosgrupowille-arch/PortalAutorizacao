@@ -780,6 +780,13 @@
       <p>Códigos e valores de exames por convênio, para digitação da guia na recepção.</p>
       <span class="hub-card-tag">Acesso livre</span>
     </button>
+    <button type="button" id="chooser-btn-farmacia" class="hub-card hub-card-lock">
+      <span class="hub-card-lockbadge" title="Acesso restrito"><span class="material-symbols-outlined hub-icon-sm">lock</span></span>
+      <div class="hub-card-icone"><span class="material-symbols-outlined">medication</span></div>
+      <h3>Farmácia / Conta Aberta</h3>
+      <p>Conciliação de materiais e medicamentos: kit da cirurgia batido contra a tabela do convênio.</p>
+      <span class="hub-card-tag hub-card-tag-lock">Acesso restrito</span>
+    </button>
   </div>
 
   <div id="chooser-horario-bloqueado" class="hub-oculto" style="max-width:480px; margin:0 auto; text-align:center; background:var(--white); border-radius:14px; padding:28px 24px; box-shadow:var(--shadow);">
@@ -834,7 +841,6 @@
   <button type="button" class="tab-btn active" data-target="tabFaturamento">Faturamento</button>
   <button type="button" class="tab-btn" data-target="tabComparativo">Comparativo por Cirurgia</button>
   <button type="button" class="tab-btn" data-target="tabParceiros">Informações Sobre Faturamento de Parceiros</button>
-  <button type="button" class="tab-btn" data-target="tabConciliacao">Conciliação de Materiais</button>
 </div>
 
 <div id="tabFaturamento" class="tab-panel">
@@ -977,41 +983,6 @@
       <div class="result-empty">Selecione um sindicato acima para ver o contato.</div>
     </div>
   </div>
-  </div>
-
-</main>
-</div>
-
-<div id="tabConciliacao" class="tab-panel" style="display:none;">
-<main>
-
-  <div class="step active" id="stepConciliacaoProcedimento">
-    <div class="step-head">
-      <span class="step-num">1</span>
-      <h2>Cirurgia/procedimento</h2>
-      <span class="step-help">Kit de materiais e medicamentos cadastrado pela farmácia para essa cirurgia.</span>
-    </div>
-    <input type="text" id="searchConciliacaoProcedimento" class="search-input" placeholder="Buscar por nome da cirurgia…">
-    <div class="chip-grid" id="conciliacaoProcedimentoGrid"></div>
-  </div>
-
-  <div class="step" id="stepConciliacaoConvenio">
-    <div class="step-head">
-      <span class="step-num">2</span>
-      <h2>Convênio</h2>
-      <span class="step-help">Tabela de preço contra a qual os itens do kit serão comparados.</span>
-    </div>
-    <div class="chip-grid" id="conciliacaoConvenioGrid"></div>
-  </div>
-
-  <div class="step">
-    <div class="step-head">
-      <span class="step-num">3</span>
-      <h2>Itens do kit x tabela do convênio</h2>
-    </div>
-    <div class="result" id="conciliacaoResult">
-      <div class="result-empty">Selecione a cirurgia e o convênio acima para ver a conciliação.</div>
-    </div>
   </div>
 
 </main>
@@ -2291,13 +2262,13 @@ function produtoPorCodigoCA(codigo){
 }
 
 function renderConciliacaoProcedimentoGrid(){
-  const grid = root.querySelector('#conciliacaoProcedimentoGrid');
+  const grid = document.querySelector('#conciliacaoProcedimentoGrid');
   if(!grid) return;
   if(!CA_PROCEDIMENTOS.length){
     grid.innerHTML = '<div class="result-empty">Carregando…</div>';
     return;
   }
-  const termo = (root.querySelector('#searchConciliacaoProcedimento').value || '').trim().toLowerCase();
+  const termo = (document.querySelector('#searchConciliacaoProcedimento').value || '').trim().toLowerCase();
   const lista = termo ? CA_PROCEDIMENTOS.filter(p => p.nome.toLowerCase().includes(termo)) : CA_PROCEDIMENTOS;
   if(lista.length === 0){
     grid.innerHTML = '<div class="result-empty">Nenhuma cirurgia encontrada para essa busca.</div>';
@@ -2323,7 +2294,7 @@ const CONVENIOS_CONCILIACAO = [
   {chave: 'brasindice', rotulo: 'BRASÍNDICE'},
 ];
 function renderConciliacaoConvenioGrid(){
-  const grid = root.querySelector('#conciliacaoConvenioGrid');
+  const grid = document.querySelector('#conciliacaoConvenioGrid');
   if(!grid) return;
   grid.innerHTML = '';
   CONVENIOS_CONCILIACAO.forEach(c => {
@@ -2336,7 +2307,7 @@ function renderConciliacaoConvenioGrid(){
       try{
         await carregarTabelaConvenioCA(c.chave);
       }catch(e){
-        root.querySelector('#conciliacaoResult').innerHTML = `<div class="result-empty">Erro ao carregar tabela do convênio: ${e.message}</div>`;
+        document.querySelector('#conciliacaoResult').innerHTML = `<div class="result-empty">Erro ao carregar tabela do convênio: ${e.message}</div>`;
         return;
       }
       renderConciliacaoResult();
@@ -2347,7 +2318,7 @@ function renderConciliacaoConvenioGrid(){
 
 async function carregarTabelaConvenioCA(chave){
   if(CA_TABELAS_CONVENIO[chave]) return;
-  root.querySelector('#conciliacaoResult').innerHTML = '<div class="result-empty">Carregando tabela do convênio…</div>';
+  document.querySelector('#conciliacaoResult').innerHTML = '<div class="result-empty">Carregando tabela do convênio…</div>';
   const auth = getIdentidadeFat();
   if(!auth) throw new Error('Faça login novamente.');
   const dados = await rpcFat('ca_get_tabela_convenio', {p_nome: auth.nome, p_senha: auth.senha, p_convenio: chave});
@@ -2355,7 +2326,7 @@ async function carregarTabelaConvenioCA(chave){
 }
 
 function renderConciliacaoResult(){
-  const box = root.querySelector('#conciliacaoResult');
+  const box = document.querySelector('#conciliacaoResult');
   if(!selConciliacaoProcedimento || !selConciliacaoConvenio){
     box.innerHTML = '<div class="result-empty">Selecione a cirurgia e o convênio acima para ver a conciliação.</div>';
     return;
@@ -2421,12 +2392,67 @@ function renderConciliacaoResult(){
   `;
 }
 
-root.querySelector('#searchConciliacaoProcedimento').addEventListener('input', renderConciliacaoProcedimentoGrid);
+document.querySelector('#searchConciliacaoProcedimento').addEventListener('input', renderConciliacaoProcedimentoGrid);
 renderConciliacaoConvenioGrid();
 renderConciliacaoResult();
 
 })();
 </script>
+<div id="view-farmacia" class="view-portal hub-oculto">
+<button type="button" class="hub-btn-voltar" data-voltar>&larr; Trocar de portal</button>
+
+<div class="hero">
+  <div class="hero-scrim"></div>
+  <div class="hero-inner">
+    <div class="brand">
+      <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="brand-text">
+        <p class="eyebrow">HUB LASER · FARMÁCIA</p>
+        <h1>Conciliação de Materiais</h1>
+      </div>
+    </div>
+    <p class="hero-sub">Kit de materiais e medicamentos da cirurgia, comparado com a tabela de preço do convênio.</p>
+  </div>
+</div>
+
+<main>
+
+  <div class="step active" id="stepConciliacaoProcedimento">
+    <div class="step-head">
+      <span class="step-num">1</span>
+      <h2>Cirurgia/procedimento</h2>
+      <span class="step-help">Kit de materiais e medicamentos cadastrado pela farmácia para essa cirurgia.</span>
+    </div>
+    <input type="text" id="searchConciliacaoProcedimento" class="search-input" placeholder="Buscar por nome da cirurgia…">
+    <div class="chip-grid" id="conciliacaoProcedimentoGrid"></div>
+  </div>
+
+  <div class="step" id="stepConciliacaoConvenio">
+    <div class="step-head">
+      <span class="step-num">2</span>
+      <h2>Convênio</h2>
+      <span class="step-help">Tabela de preço contra a qual os itens do kit serão comparados.</span>
+    </div>
+    <div class="chip-grid" id="conciliacaoConvenioGrid"></div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <span class="step-num">3</span>
+      <h2>Itens do kit x tabela do convênio</h2>
+    </div>
+    <div class="result" id="conciliacaoResult">
+      <div class="result-empty">Selecione a cirurgia e o convênio acima para ver a conciliação.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <strong>Conciliação de Materiais e Medicamentos.</strong> Dados migrados do sistema "Ficha Cirurgias Farmácia-Faturamento" (kit de cada cirurgia, cadastro de produtos, tabelas de preço de SC Saúde/Unimed/Brasíndice e memória de decisões manuais). Primeira versão: só consulta — importar tabela nova e editar a memória continuam feitos fora do Portal por enquanto.
+</footer>
+
+</div>
 <div id="view-autorizacao" class="view-portal hub-oculto">
 <button type="button" class="hub-btn-voltar" data-voltar>&larr; Trocar de portal</button>
 
@@ -4188,6 +4214,7 @@ function renderContatosConvenioAz(){
   var viewFat = document.getElementById('view-faturamento');
   var viewAz = document.getElementById('view-autorizacao');
   var viewExames = document.getElementById('view-autorizacao-exames');
+  var viewFarmacia = document.getElementById('view-farmacia');
   var senhaTitulo = document.getElementById('senha-titulo');
   var senhaDescricao = document.getElementById('senha-descricao');
   var senhaNome = document.getElementById('senha-nome');
@@ -4202,7 +4229,7 @@ function renderContatosConvenioAz(){
     senhaInput.type = mostrando ? 'password' : 'text';
     senhaOlhoIcone.textContent = mostrando ? 'visibility' : 'visibility_off';
   });
-  var telas = [chooser, overlay, viewFat, viewAz, viewExames];
+  var telas = [chooser, overlay, viewFat, viewAz, viewExames, viewFarmacia];
 
   var AREAS = {
     faturamento: {
@@ -4288,6 +4315,26 @@ function renderContatosConvenioAz(){
             };
           });
           window.__setDataAutorizacao(dataProcedimentos);
+        });
+      },
+    },
+    farmacia: {
+      view: viewFarmacia,
+      titulo: 'Área restrita — Farmácia / Conta Aberta',
+      descricao: 'Esta área é restrita à farmácia e ao faturamento. Informe seu nome e senha para continuar.',
+      chaveSessao: 'hub_area_farmacia',
+      nomes: ['Karla', 'Andreia', 'Artur', 'Carolline'],
+      carregarDados: function(nome, senha){
+        return Promise.all([
+          sb.rpc('ca_get_produtos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_procedimentos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_memoria', { p_nome: nome, p_senha: senha }),
+        ]).then(function(results){
+          var caProdutosRes = results[0], caProcedimentosRes = results[1], caMemoriaRes = results[2];
+          if(caProdutosRes.error) throw caProdutosRes.error;
+          if(caProcedimentosRes.error) throw caProcedimentosRes.error;
+          if(caMemoriaRes.error) throw caMemoriaRes.error;
+          window.__setDadosConciliacao(caProdutosRes.data || [], caProcedimentosRes.data || [], caMemoriaRes.data || []);
         });
       },
     },
@@ -4396,6 +4443,7 @@ function renderContatosConvenioAz(){
   document.getElementById('chooser-btn-faturamento').addEventListener('click', function(){ abrirArea('faturamento'); });
   document.getElementById('chooser-btn-autorizacao').addEventListener('click', function(){ abrirArea('autorizacao'); });
   document.getElementById('chooser-btn-autorizacao-exames').addEventListener('click', function(){ abrirArea('exames'); });
+  document.getElementById('chooser-btn-farmacia').addEventListener('click', function(){ abrirArea('farmacia'); });
   senhaConfirmarBtn.addEventListener('click', confirmarSenha);
   document.getElementById('senha-cancelar').addEventListener('click', function(){ mostrar(chooser); });
   senhaInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ confirmarSenha(); } });
