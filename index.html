@@ -165,6 +165,8 @@
      chip aqui é redundante (pedido do usuário, 09/09/2026). Pra trocar de
      convênio, clicar na aba "Por convênio" (volta pra lista). */
   #stepsConvenioExames.convenio-selecionado > .step:first-child{display:none;}
+  #stepsConvenioFaturamento.convenio-selecionado > .step:first-child{display:none;}
+  #tabPorConvenioFat{display:none;}
   .step-title-clickable:hover{color:var(--teal-600);}
   .step-help{
     font-size:12.5px;
@@ -814,6 +816,11 @@
 <div id="tabFaturamento" class="tab-panel">
 <main>
 
+  <div class="pacote-tabs">
+    <button type="button" class="pacote-tab active" id="tabPorConvenioFat">Por convênio</button>
+  </div>
+
+  <div id="stepsConvenioFaturamento">
   <div class="step active" id="step1">
     <div class="step-head">
       <span class="step-num">1</span>
@@ -865,6 +872,7 @@
         <div class="convenio-painel hub-oculto" id="painelInfoFaturamento"></div>
       </div>
     </div>
+  </div>
   </div>
 
 </main>
@@ -993,6 +1001,10 @@ function renderConvenios(){
       const vazioFat = root.querySelector('#resultVazioFaturamento');
       if(layoutFat) layoutFat.style.display = '';
       if(vazioFat) vazioFat.style.display = 'none';
+      const stepsConvenioFat = root.querySelector('#stepsConvenioFaturamento');
+      const pillConvenioFat = root.querySelector('#tabPorConvenioFat');
+      if(stepsConvenioFat) stepsConvenioFat.classList.add('convenio-selecionado');
+      if(pillConvenioFat) pillConvenioFat.style.display = 'inline-block';
       
       renderConvenios();
       renderCirurgias();
@@ -1108,6 +1120,10 @@ root.querySelector('#btnConcluir').addEventListener('click', () => {
 });
 
 // Evento do botão Limpar - Reseta o fluxo inteiro (cirurgias, convênio e busca)
+root.querySelector('#tabPorConvenioFat').addEventListener('click', () => {
+  root.querySelector('#btnLimpar').click();
+});
+
 root.querySelector('#btnLimpar').addEventListener('click', () => {
   selCirurgias = new Set();
   selConvenio = null;
@@ -1126,6 +1142,10 @@ root.querySelector('#btnLimpar').addEventListener('click', () => {
   const vazioFatReset = root.querySelector('#resultVazioFaturamento');
   if(layoutFatReset) layoutFatReset.style.display = 'none';
   if(vazioFatReset) vazioFatReset.style.display = '';
+  const stepsConvenioFatReset = root.querySelector('#stepsConvenioFaturamento');
+  const pillConvenioFatReset = root.querySelector('#tabPorConvenioFat');
+  if(stepsConvenioFatReset) stepsConvenioFatReset.classList.remove('convenio-selecionado');
+  if(pillConvenioFatReset) pillConvenioFatReset.style.display = 'none';
 
   const grid = root.querySelector('#cirurgiaGrid');
   const searchBox = root.querySelector('#searchCirurgia');
