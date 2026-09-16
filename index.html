@@ -822,29 +822,48 @@
     <div class="chip-grid" id="convenioGrid"></div>
   </div>
 
-  <div class="step" id="step2">
-    <div class="step-head">
-      <span class="step-num">2</span>
-      <h2>Cirurgia</h2>
-      <span class="step-help" id="cirurgiaHelp"></span>
-      <button type="button" class="clear-btn" id="clearCirurgias" style="display:none;">Limpar seleção</button>
-    </div>
-    <p class="multi-hint">Pode selecionar mais de uma cirurgia quando forem realizadas na mesma cirurgia (ex.: vitrectomia + facectomia).</p>
-    <div class="action-buttons">
-      <button type="button" class="btn-limpar" id="btnLimpar" style="display:none;" title="Limpar todas as cirurgias selecionadas">Limpar</button>
-      <button type="button" class="btn-concluir" id="btnConcluir" style="display:none;" title="Concluir seleção e mostrar autorização">Concluir</button>
-    </div>
-    <input type="text" id="searchCirurgia" class="search-input" placeholder="Buscar por nome ou código TUSS…">
-    <div class="chip-grid" id="cirurgiaGrid"></div>
-  </div>
-
   <div class="step">
-    <div class="step-head">
-      <span class="step-num">3</span>
-      <h2>O que faturar</h2>
+    <div class="result" id="resultVazioFaturamento">
+      <div class="result-empty">Selecione o convênio acima para ver as opções.</div>
     </div>
-    <div class="result" id="resultBox">
-      <div class="result-empty">Selecione o convênio e uma ou mais cirurgias para ver a lista de autorização.</div>
+
+    <div class="convenio-layout" id="convenioLayoutFaturamento" style="display:none;">
+      <nav class="convenio-menu" id="convenioMenuFaturamento">
+        <button type="button" class="convenio-menu-item active" data-painel="cirurgias"><span class="cmi-icon">💰</span>Faturamento</button>
+        <button type="button" class="convenio-menu-item" data-painel="info"><span class="cmi-icon">📨</span>Informações para Faturamento</button>
+      </nav>
+      <div class="convenio-conteudo">
+        <div class="convenio-painel" id="painelCirurgiasConvenioFat">
+
+          <div class="step" id="step2">
+            <div class="step-head">
+              <span class="step-num">2</span>
+              <h2>Cirurgia</h2>
+              <span class="step-help" id="cirurgiaHelp"></span>
+              <button type="button" class="clear-btn" id="clearCirurgias" style="display:none;">Limpar seleção</button>
+            </div>
+            <p class="multi-hint">Pode selecionar mais de uma cirurgia quando forem realizadas na mesma cirurgia (ex.: vitrectomia + facectomia).</p>
+            <div class="action-buttons">
+              <button type="button" class="btn-limpar" id="btnLimpar" style="display:none;" title="Limpar todas as cirurgias selecionadas">Limpar</button>
+              <button type="button" class="btn-concluir" id="btnConcluir" style="display:none;" title="Concluir seleção e mostrar autorização">Concluir</button>
+            </div>
+            <input type="text" id="searchCirurgia" class="search-input" placeholder="Buscar por nome ou código TUSS…">
+            <div class="chip-grid" id="cirurgiaGrid"></div>
+          </div>
+
+          <div class="step" id="step3">
+            <div class="step-head">
+              <span class="step-num">3</span>
+              <h2>O que faturar</h2>
+            </div>
+            <div class="result" id="resultBox">
+              <div class="result-empty">Selecione o convênio e uma ou mais cirurgias para ver a lista de autorização.</div>
+            </div>
+          </div>
+
+        </div>
+        <div class="convenio-painel hub-oculto" id="painelInfoFaturamento"></div>
+      </div>
     </div>
   </div>
 
@@ -889,7 +908,7 @@ const root = document.getElementById('view-faturamento');
 
 let DATA = {};
 const ORDER = ["LASIK", "PRK", "CALAZIO", "PTERIGIO", "TUMOR DE CONJUNTIVA", "TRATAMENTO INTRA OCULAR QUIMIOT", "FACECTOMIA COM IMPLANTE DE LIO", "VITRECTOMIA VIA PARS", "RETINOPEXIA", "HUB_30301017", "HUB_30301084", "HUB_30301157", "HUB_30301165", "HUB_30301173", "HUB_30301181", "HUB_30301190", "HUB_30301211", "HUB_30301238", "HUB_30301262", "HUB_30302056", "HUB_30302102", "HUB_30302137", "HUB_30303010", "HUB_30303044", "HUB_30303087", "HUB_30304024", "HUB_30304040", "HUB_30304059", "HUB_30304067", "HUB_30304083", "HUB_30304156", "HUB_30305012", "HUB_30305020", "HUB_30305047", "HUB_30306035", "HUB_30306043", "HUB_30306051", "HUB_30306060", "HUB_30307031", "HUB_30307040", "HUB_30307066", "HUB_30307074", "HUB_30307082", "HUB_30307090", "HUB_30307104", "HUB_30307112", "HUB_30307139", "HUB_30308038", "HUB_30309018", "HUB_30309026", "HUB_30310032", "HUB_30310040", "HUB_30311039", "HUB_30311047", "HUB_30311055", "HUB_30312094", "HUB_30312108", "HUB_30312132", "HUB_30313031", "HUB_30313058", "HUB_30313066", "BR_30301025", "BR_30301033", "BR_30301050", "BR_30301068", "BR_30301076", "BR_30301114", "BR_30301122", "BR_30301130", "BR_30301149", "BR_30301203", "BR_30301220", "BR_30301246", "BR_30301254", "BR_30302013", "BR_30302021", "BR_30302030", "BR_30302048", "BR_30302064", "BR_30302072", "BR_30302080", "BR_30302099", "BR_30302110", "BR_30302129", "BR_30303028", "BR_30303036", "BR_30303052", "BR_30303079", "BR_30304016", "BR_30304032", "BR_30304075", "BR_30305039", "BR_30306019", "BR_30306078", "BR_30306116", "BR_30307015", "BR_30307023", "BR_30307058", "BR_30308011", "BR_30308020", "BR_30308046", "BR_30309034", "BR_30310016", "BR_30310024", "BR_30310059", "BR_30310067", "BR_30310075", "BR_30310083", "BR_30310091", "BR_30310105", "BR_30310113", "BR_30310148", "BR_30310156", "BR_30310172", "BR_30311012", "BR_30311020", "BR_30311063", "BR_30312019", "BR_30312027", "BR_30312035", "BR_30312043", "BR_30312051", "BR_30312060", "BR_30312078", "BR_30313015", "BR_30313023", "BR_30313040", "BR_30313074", "BR_31501010", "NS_30301106", "NS_30303095", "NS_30312124", "NS_30312140", "NS_31501028", "SC2_30312116", "SC2_30312159", "BR_30301092", "BR_30301270", "BR_30303117", "BR_30304113", "BR_30304121", "BR_30304130", "BR_30304148", "BR_30306086"];
-const CONVENIOS = ["BRADESCO", "SC SAUDE", "UNIMED", "SAUDE CAIXA", "LEVMED", "NOSSA SAUDE", "SELECT", "MEDISERVECE"];
+const CONVENIOS = ["BRADESCO", "SC SAUDE", "UNIMED", "SAUDE CAIXA", "LEVMED", "NOSSA SAUDE", "SELECT", "MEDISERVECE", "SINDICATO DAS CARGAS"];
 
 let PACOTES = [];
 
@@ -962,13 +981,18 @@ function renderConvenios(){
       const grid = root.querySelector('#cirurgiaGrid');
       const searchBox = root.querySelector('#searchCirurgia');
       const step2 = root.querySelector('#step2');
-      const step3 = root.querySelector('.step:nth-of-type(3)');
+      const step3 = root.querySelector('#step3');
       
       if(grid) grid.style.display = '';
       if(searchBox) searchBox.style.display = '';
       step2.classList.remove('completed');
       step2.classList.add('active');
       step3.classList.remove('active');
+
+      const layoutFat = root.querySelector('#convenioLayoutFaturamento');
+      const vazioFat = root.querySelector('#resultVazioFaturamento');
+      if(layoutFat) layoutFat.style.display = '';
+      if(vazioFat) vazioFat.style.display = 'none';
       
       renderConvenios();
       renderCirurgias();
@@ -1058,7 +1082,7 @@ root.querySelector('#btnConcluir').addEventListener('click', () => {
   const grid = root.querySelector('#cirurgiaGrid');
   const searchBox = root.querySelector('#searchCirurgia');
   const step2 = root.querySelector('#step2');
-  const step3 = root.querySelector('.step:nth-of-type(3)');
+  const step3 = root.querySelector('#step3');
   const resultBox = root.querySelector('#resultBox');
   
   // Recolhe a grid de cirurgias e barra de pesquisa
@@ -1092,11 +1116,16 @@ root.querySelector('#btnLimpar').addEventListener('click', () => {
 
   const step1 = root.querySelector('#step1');
   const step2 = root.querySelector('#step2');
-  const step3 = root.querySelector('.step:nth-of-type(3)');
+  const step3 = root.querySelector('#step3');
 
   step1.classList.add('active');
   step2.classList.remove('active', 'completed');
   step3.classList.remove('active');
+
+  const layoutFatReset = root.querySelector('#convenioLayoutFaturamento');
+  const vazioFatReset = root.querySelector('#resultVazioFaturamento');
+  if(layoutFatReset) layoutFatReset.style.display = 'none';
+  if(vazioFatReset) vazioFatReset.style.display = '';
 
   const grid = root.querySelector('#cirurgiaGrid');
   const searchBox = root.querySelector('#searchCirurgia');
@@ -1659,6 +1688,68 @@ window.__setDataFaturamento = function(dataProcedimentos, pacotes){
   renderComparativoGrid();
   renderComparativoResult();
 };
+
+// ============================================
+// ABA "Informacoes para Faturamento" (16/09/2026) - pedido do usuario:
+// "vou passando os dados em todos os convenios [...] vamos inserir todas
+// as informacoes pertinentes para faturar" (data de envio, e-mail,
+// telefone/whatsapp, endereco pra guias originais, observacoes tipo "NF
+// emitida apos pagamento"). Dado vai sendo cadastrado aos poucos pelo
+// usuario, convenio por convenio - por enquanto so' tem o exemplo que ele
+// mandou (Sindicato das Cargas).
+// ============================================
+const INFORMACOES_FATURAMENTO = {
+  'SINDICATO DAS CARGAS': {
+    dataEnvio: 'Primeiro dia útil do mês',
+    email: 'sindicato02@expresso.com.br',
+    contatos: [
+      { rotulo: 'Sindicato de Carga (WhatsApp — Faturamento)', telefone: '47 9915-6384' }
+    ],
+    enderecoEnvio: 'Av. Cel. Procópio Gomes, 506 - Bucarein, Joinville - SC, 89202-300, Brasil',
+    observacoes: 'A NF é emitida após pagamento.'
+  }
+};
+
+let painelAtivoConvenioFat = 'cirurgias';
+const convenioMenuButtonsFat = Array.from(root.querySelectorAll('#convenioMenuFaturamento .convenio-menu-item'));
+function atualizarPainelConvenioFat(){
+  convenioMenuButtonsFat.forEach(b => b.classList.toggle('active', b.dataset.painel === painelAtivoConvenioFat));
+  root.querySelector('#painelCirurgiasConvenioFat').classList.toggle('hub-oculto', painelAtivoConvenioFat !== 'cirurgias');
+  root.querySelector('#painelInfoFaturamento').classList.toggle('hub-oculto', painelAtivoConvenioFat !== 'info');
+  if(painelAtivoConvenioFat === 'info') renderInformacoesFaturamento();
+}
+convenioMenuButtonsFat.forEach(btn => {
+  btn.addEventListener('click', () => {
+    painelAtivoConvenioFat = btn.dataset.painel;
+    atualizarPainelConvenioFat();
+  });
+});
+
+function renderInformacoesFaturamento(){
+  const box = root.querySelector('#painelInfoFaturamento');
+  const head = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Informações para Faturamento</p>
+        <h3>Como e quando enviar a fatura</h3>
+      </div>
+      <span class="rh-convenio">${selConvenio}</span>
+    </div>`;
+  const info = INFORMACOES_FATURAMENTO[selConvenio];
+  if(!info){
+    box.innerHTML = head + `<div class="result-empty">Informações de faturamento ainda não cadastradas para ${selConvenio}.</div>`;
+    return;
+  }
+  let linhas = '';
+  if(info.dataEnvio) linhas += `<div class="login-row"><span class="login-label">Data do envio</span><span class="login-valor">${info.dataEnvio}</span></div>`;
+  if(info.email) linhas += `<div class="login-row"><span class="login-label">E-mail</span><span class="login-valor">${info.email}</span></div>`;
+  (info.contatos || []).forEach(c => {
+    linhas += `<div class="login-row"><span class="login-label">${c.rotulo || 'Telefone'}</span><span class="login-valor">${c.telefone}</span></div>`;
+  });
+  if(info.enderecoEnvio) linhas += `<div class="login-row"><span class="login-label">Endereço p/ guias originais</span><span class="login-valor">${info.enderecoEnvio}</span></div>`;
+  if(info.observacoes) linhas += `<div class="login-row"><span class="login-label">Observações</span><span class="login-valor">${info.observacoes}</span></div>`;
+  box.innerHTML = head + `<div class="login-card">${linhas}</div>`;
+}
 
 })();
 </script>
