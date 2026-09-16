@@ -384,6 +384,7 @@
   }
   .badge.sim{background:var(--teal-100); color:var(--teal-700);}
   .badge.nao{background:var(--red-100); color:var(--red-600);}
+  .badge.info{background:var(--gray-100,#F0F2F4); color:var(--gray-600);}
   .badge.outro{background:var(--gray-200); color:var(--gray-500);}
   .result-empty{
     padding:40px 24px;
@@ -833,6 +834,7 @@
   <button type="button" class="tab-btn active" data-target="tabFaturamento">Faturamento</button>
   <button type="button" class="tab-btn" data-target="tabComparativo">Comparativo por Cirurgia</button>
   <button type="button" class="tab-btn" data-target="tabParceiros">Informações Sobre Faturamento de Parceiros</button>
+  <button type="button" class="tab-btn" data-target="tabConciliacao">Conciliação de Materiais</button>
 </div>
 
 <div id="tabFaturamento" class="tab-panel">
@@ -975,6 +977,41 @@
       <div class="result-empty">Selecione um sindicato acima para ver o contato.</div>
     </div>
   </div>
+  </div>
+
+</main>
+</div>
+
+<div id="tabConciliacao" class="tab-panel" style="display:none;">
+<main>
+
+  <div class="step active" id="stepConciliacaoProcedimento">
+    <div class="step-head">
+      <span class="step-num">1</span>
+      <h2>Cirurgia/procedimento</h2>
+      <span class="step-help">Kit de materiais e medicamentos cadastrado pela farmácia para essa cirurgia.</span>
+    </div>
+    <input type="text" id="searchConciliacaoProcedimento" class="search-input" placeholder="Buscar por nome da cirurgia…">
+    <div class="chip-grid" id="conciliacaoProcedimentoGrid"></div>
+  </div>
+
+  <div class="step" id="stepConciliacaoConvenio">
+    <div class="step-head">
+      <span class="step-num">2</span>
+      <h2>Convênio</h2>
+      <span class="step-help">Tabela de preço contra a qual os itens do kit serão comparados.</span>
+    </div>
+    <div class="chip-grid" id="conciliacaoConvenioGrid"></div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <span class="step-num">3</span>
+      <h2>Itens do kit x tabela do convênio</h2>
+    </div>
+    <div class="result" id="conciliacaoResult">
+      <div class="result-empty">Selecione a cirurgia e o convênio acima para ver a conciliação.</div>
+    </div>
   </div>
 
 </main>
@@ -2145,6 +2182,248 @@ root.querySelector('#tabPorSindicatoAto').addEventListener('click', () => {
   renderSindicatosAtoGrid();
   renderSindicatoAtoDetalhe();
 });
+
+// ============================================
+// CONCILIAÇÃO DE MATERIAIS (16/09/2026) - pedido do usuário: "quero
+// acessar e fazer tudo de um único local". Porta o motor de matching do
+// sistema separado portal-cirurgias-SISTEMA-ATUAL/lib/matching.js pro
+// navegador. O dado (produtos, kits, procedimentos, tabela de convênio,
+// memória) já estava migrado no Supabase desde 15/09 (schema ca_*, área
+// "faturamento") — faltava só essa tela. `ca_produtos`/`ca_tabela_convenio`
+// já vêm do banco com `tokens`/`texto_busca`/`chave` pré-calculados (a
+// migração já fez a normalização), então o port não precisa reimplementar
+// normalizar.js — só a lógica de comparação (dice/índice invertido).
+// Primeira versão: só consulta/conciliação (ver os itens do kit batidos
+// contra a tabela do convênio). Importar tabela nova por Excel/PDF e
+// editar a memória pela tela ficam pra depois (escopo confirmado com o
+// usuário).
+// ============================================
+const LIMIAR_AUTO_CA = 0.55;
+const MAX_SUGESTOES_CA = 10;
+
+function diceCA(tokensA, tokensB){
+  if(!tokensA || !tokensB || !tokensA.length || !tokensB.length) return 0;
+  const setB = new Set(tokensB);
+  let intersecao = 0;
+  for(const t of tokensA) if(setB.has(t)) intersecao++;
+  return (2 * intersecao) / (tokensA.length + tokensB.length);
+}
+
+function construirIndiceCA(itens){
+  const indice = new Map();
+  itens.forEach((item, idx) => {
+    (item.tokens || []).forEach(tok => {
+      if(!indice.has(tok)) indice.set(tok, []);
+      indice.get(tok).push(idx);
+    });
+  });
+  return indice;
+}
+
+function buscarCandidatosCA(tokensQuery, chaveQuery, itens, indice, limite){
+  limite = limite || MAX_SUGESTOES_CA;
+  if(!tokensQuery || !tokensQuery.length) return [];
+  const exato = itens.find(it => it.texto_busca === chaveQuery);
+  if(exato) return [{item: exato, score: 1}];
+  const candidatosIdx = new Set();
+  tokensQuery.forEach(tok => {
+    const lista = indice.get(tok);
+    if(lista) lista.forEach(idx => candidatosIdx.add(idx));
+  });
+  const pontuados = [];
+  candidatosIdx.forEach(idx => {
+    const item = itens[idx];
+    let score = diceCA(tokensQuery, item.tokens);
+    if(item.texto_busca && chaveQuery && (item.texto_busca.includes(chaveQuery) || chaveQuery.includes(item.texto_busca))){
+      score = Math.max(score, 0.85);
+    }
+    if(score > 0.08) pontuados.push({item, score});
+  });
+  pontuados.sort((a, b) => b.score - a.score);
+  return pontuados.slice(0, limite);
+}
+
+// concilia os itens do kit (com codigo interno da farmacia) contra a
+// tabela de preco do convenio, aplicando a memoria de decisoes manuais.
+function conciliarCA(itensHub, tabelaConvenio, memoriaConvenio){
+  const indice = construirIndiceCA(tabelaConvenio);
+  const memoriaPorChave = new Map(memoriaConvenio.map(m => [m.chave_item, m]));
+  return itensHub.map(itemHub => {
+    const memorizado = memoriaPorChave.get(itemHub.chave);
+
+    if(memorizado && memorizado.valido === false){
+      return {
+        ...itemHub, status: 'memoria_desatualizada', match: null,
+        aviso: `Memorizado antes como ${memorizado.codigo} (${memorizado.descricao || ''}), mas esse código não existe mais na tabela atual.`
+      };
+    }
+    if(memorizado && memorizado.valido !== false){
+      return {
+        ...itemHub, status: 'memorizado',
+        match: {codigo: memorizado.codigo, descricao: memorizado.descricao, valor: memorizado.valor}
+      };
+    }
+    const candidatos = buscarCandidatosCA(itemHub.tokens, itemHub.chave, tabelaConvenio, indice);
+    const melhor = candidatos[0];
+    if(melhor && melhor.score >= LIMIAR_AUTO_CA){
+      return { ...itemHub, status: 'localizado', match: {...melhor.item, score: melhor.score} };
+    }
+    return { ...itemHub, status: 'nao_localizado', match: null };
+  });
+}
+
+let CA_PRODUTOS = [];
+let CA_PROCEDIMENTOS = [];
+let CA_MEMORIA = [];
+const CA_TABELAS_CONVENIO = {};
+let selConciliacaoProcedimento = null;
+let selConciliacaoConvenio = null;
+
+window.__setDadosConciliacao = function(produtos, procedimentos, memoria){
+  CA_PRODUTOS = produtos || [];
+  CA_PROCEDIMENTOS = procedimentos || [];
+  CA_MEMORIA = memoria || [];
+  renderConciliacaoProcedimentoGrid();
+};
+
+function produtoPorCodigoCA(codigo){
+  return CA_PRODUTOS.find(p => p.codigo === codigo);
+}
+
+function renderConciliacaoProcedimentoGrid(){
+  const grid = root.querySelector('#conciliacaoProcedimentoGrid');
+  if(!grid) return;
+  if(!CA_PROCEDIMENTOS.length){
+    grid.innerHTML = '<div class="result-empty">Carregando…</div>';
+    return;
+  }
+  const termo = (root.querySelector('#searchConciliacaoProcedimento').value || '').trim().toLowerCase();
+  const lista = termo ? CA_PROCEDIMENTOS.filter(p => p.nome.toLowerCase().includes(termo)) : CA_PROCEDIMENTOS;
+  if(lista.length === 0){
+    grid.innerHTML = '<div class="result-empty">Nenhuma cirurgia encontrada para essa busca.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  lista.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (selConciliacaoProcedimento === p.id ? ' selected' : '');
+    btn.innerHTML = `<span class="chip-name">${p.nome}</span><span class="chip-code mono">${(p.itens || []).length} item(ns)</span>`;
+    btn.addEventListener('click', () => {
+      selConciliacaoProcedimento = p.id;
+      renderConciliacaoProcedimentoGrid();
+      renderConciliacaoResult();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+const CONVENIOS_CONCILIACAO = [
+  {chave: 'sc_saude', rotulo: 'SC SAÚDE'},
+  {chave: 'unimed', rotulo: 'UNIMED'},
+  {chave: 'brasindice', rotulo: 'BRASÍNDICE'},
+];
+function renderConciliacaoConvenioGrid(){
+  const grid = root.querySelector('#conciliacaoConvenioGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  CONVENIOS_CONCILIACAO.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (selConciliacaoConvenio === c.chave ? ' selected' : '');
+    btn.innerHTML = `<span class="chip-name">${c.rotulo}</span>`;
+    btn.addEventListener('click', async () => {
+      selConciliacaoConvenio = c.chave;
+      renderConciliacaoConvenioGrid();
+      try{
+        await carregarTabelaConvenioCA(c.chave);
+      }catch(e){
+        root.querySelector('#conciliacaoResult').innerHTML = `<div class="result-empty">Erro ao carregar tabela do convênio: ${e.message}</div>`;
+        return;
+      }
+      renderConciliacaoResult();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+async function carregarTabelaConvenioCA(chave){
+  if(CA_TABELAS_CONVENIO[chave]) return;
+  root.querySelector('#conciliacaoResult').innerHTML = '<div class="result-empty">Carregando tabela do convênio…</div>';
+  const auth = getIdentidadeFat();
+  if(!auth) throw new Error('Faça login novamente.');
+  const dados = await rpcFat('ca_get_tabela_convenio', {p_nome: auth.nome, p_senha: auth.senha, p_convenio: chave});
+  CA_TABELAS_CONVENIO[chave] = dados || [];
+}
+
+function renderConciliacaoResult(){
+  const box = root.querySelector('#conciliacaoResult');
+  if(!selConciliacaoProcedimento || !selConciliacaoConvenio){
+    box.innerHTML = '<div class="result-empty">Selecione a cirurgia e o convênio acima para ver a conciliação.</div>';
+    return;
+  }
+  const procedimento = CA_PROCEDIMENTOS.find(p => p.id === selConciliacaoProcedimento);
+  const tabela = CA_TABELAS_CONVENIO[selConciliacaoConvenio];
+  if(!procedimento || !tabela){
+    box.innerHTML = '<div class="result-empty">Carregando…</div>';
+    return;
+  }
+  const memoriaConvenio = CA_MEMORIA.filter(m => m.convenio === selConciliacaoConvenio);
+  const itensHub = (procedimento.itens || []).map(it => {
+    const produto = produtoPorCodigoCA(it.codigo);
+    return {
+      codigoInterno: it.codigo,
+      quantidade: it.quantidade || 1,
+      nome: produto ? produto.descricao_produto : (it.descricaoLivre || it.codigo || '—'),
+      tokens: produto ? produto.tokens : [],
+      chave: produto ? produto.chave : '',
+    };
+  });
+  const conciliado = conciliarCA(itensHub, tabela, memoriaConvenio);
+  const ROTULOS_STATUS_CA = {
+    localizado: 'Localizado', memorizado: 'Memorizado',
+    nao_localizado: 'Não localizado', memoria_desatualizada: 'Memória desatualizada'
+  };
+  let total = 0;
+  const linhas = conciliado.map(item => {
+    const valorUnit = item.match ? Number(item.match.valor || 0) : null;
+    const subtotal = valorUnit != null ? valorUnit * item.quantidade : null;
+    if(subtotal != null) total += subtotal;
+    const badgeClasse = item.status === 'localizado' ? 'sim' : (item.status === 'memorizado' ? 'info' : 'nao');
+    return `
+      <tr>
+        <td>${item.nome}</td>
+        <td class="mono">${item.quantidade}</td>
+        <td><span class="badge ${badgeClasse}">${ROTULOS_STATUS_CA[item.status] || item.status}</span></td>
+        <td class="mono">${item.match ? (item.match.codigo || '—') : '—'}</td>
+        <td>${item.match ? (item.match.descricao || '—') : (item.aviso || '—')}</td>
+        <td class="mono">${formatBRL(valorUnit)}</td>
+        <td class="mono">${formatBRL(subtotal)}</td>
+      </tr>`;
+  }).join('');
+  const rotuloConvenio = CONVENIOS_CONCILIACAO.find(c => c.chave === selConciliacaoConvenio).rotulo;
+  box.innerHTML = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Conciliação de Materiais</p>
+        <h3>${procedimento.nome}</h3>
+      </div>
+      <span class="rh-convenio">${rotuloConvenio}</span>
+    </div>
+    <div style="overflow-x:auto;">
+    <table class="items">
+      <thead><tr><th>Item</th><th>Qtd</th><th>Status</th><th>Código convênio</th><th>Descrição convênio</th><th>Valor unit.</th><th>Subtotal</th></tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    </div>
+    <div class="result-total">
+      <span class="rt-label">Total conciliado (exclui itens não localizados)</span>
+      <span class="rt-value">${formatBRL(total)}</span>
+    </div>
+  `;
+}
+
+root.querySelector('#searchConciliacaoProcedimento').addEventListener('input', renderConciliacaoProcedimentoGrid);
+renderConciliacaoConvenioGrid();
+renderConciliacaoResult();
 
 })();
 </script>
@@ -3939,13 +4218,20 @@ function renderContatosConvenioAz(){
           sb.rpc('pr_get_convenio_info', { p_nome: nome, p_senha: senha }),
           sb.rpc('pr_get_parceiro_info', { p_nome: nome, p_senha: senha }),
           sb.rpc('pr_get_sindicato_ato_info', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_produtos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_procedimentos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_memoria', { p_nome: nome, p_senha: senha }),
         ]).then(function(results){
           var procRes = results[0], pacRes = results[1], convInfoRes = results[2], parcInfoRes = results[3], sindInfoRes = results[4];
+          var caProdutosRes = results[5], caProcedimentosRes = results[6], caMemoriaRes = results[7];
           if(procRes.error) throw procRes.error;
           if(pacRes.error) throw pacRes.error;
           if(convInfoRes.error) throw convInfoRes.error;
           if(parcInfoRes.error) throw parcInfoRes.error;
           if(sindInfoRes.error) throw sindInfoRes.error;
+          if(caProdutosRes.error) throw caProdutosRes.error;
+          if(caProcedimentosRes.error) throw caProcedimentosRes.error;
+          if(caMemoriaRes.error) throw caMemoriaRes.error;
           var dataProcedimentos = {};
           (procRes.data || []).forEach(function(row){
             dataProcedimentos[row.nome] = {
@@ -3958,6 +4244,7 @@ function renderContatosConvenioAz(){
           });
           window.__setDataFaturamento(dataProcedimentos, pacRes.data || []);
           window.__setDadosFaturamentoInfo(convInfoRes.data || [], parcInfoRes.data || [], sindInfoRes.data || []);
+          window.__setDadosConciliacao(caProdutosRes.data || [], caProcedimentosRes.data || [], caMemoriaRes.data || []);
         });
       },
     },
