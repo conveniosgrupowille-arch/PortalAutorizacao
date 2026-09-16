@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 
   :root{
@@ -2341,6 +2342,8 @@ async function carregarTabelaConvenioCA(chave){
   CA_TABELAS_CONVENIO[chave] = dados || [];
 }
 
+let conciliacaoEditandoChave = null;
+
 function renderConciliacaoResult(){
   const box = document.querySelector('#conciliacaoResult');
   if(!selConciliacaoProcedimento || !selConciliacaoConvenio){
@@ -2375,6 +2378,23 @@ function renderConciliacaoResult(){
     const subtotal = valorUnit != null ? valorUnit * item.quantidade : null;
     if(subtotal != null) total += subtotal;
     const badgeClasse = item.status === 'localizado' ? 'sim' : (item.status === 'memorizado' ? 'info' : 'nao');
+
+    if(conciliacaoEditandoChave === item.chave){
+      return `
+      <tr>
+        <td colspan="7">
+          <div class="login-row"><span class="login-label">Corrigindo</span><span class="login-valor">${item.nome}</span></div>
+          <input type="text" id="conciliacaoCorrigirBusca" class="com-input" placeholder="Buscar código/descrição na tabela do convênio…" list="conciliacaoTabelaList" style="margin:8px 0;">
+          <datalist id="conciliacaoTabelaList">${tabela.slice(0, 3000).map(t => `<option value="${(t.codigo + ' — ' + (t.descricao || '')).replace(/"/g,'&quot;')}">`).join('')}</datalist>
+          <p class="com-erro hub-oculto" id="conciliacaoCorrigirErro"></p>
+          <div class="com-botoes">
+            <button type="button" class="com-btn com-btn-secundario" id="conciliacaoCorrigirCancelar">Cancelar</button>
+            <button type="button" class="com-btn com-btn-primario" id="conciliacaoCorrigirSalvar" data-chave="${item.chave}" data-item="${encodeURIComponent(item.nome)}">Salvar correção</button>
+          </div>
+        </td>
+      </tr>`;
+    }
+
     return `
       <tr>
         <td>${item.nome}</td>
@@ -2384,6 +2404,10 @@ function renderConciliacaoResult(){
         <td>${item.match ? (item.match.descricao || '—') : (item.aviso || '—')}</td>
         <td class="mono">${formatBRL(valorUnit)}</td>
         <td class="mono">${formatBRL(subtotal)}</td>
+        <td>
+          ${item.chave ? `<button type="button" class="com-link-btn" data-corrigir="${item.chave}">Corrigir</button>` : ''}
+          ${item.status === 'memorizado' ? `<button type="button" class="com-link-btn" data-desfazer="${selConciliacaoConvenio}|${item.chave}" style="margin-left:8px;">Desfazer</button>` : ''}
+        </td>
       </tr>`;
   }).join('');
   const rotuloConvenio = CONVENIOS_CONCILIACAO.find(c => c.chave === selConciliacaoConvenio).rotulo;
@@ -2397,7 +2421,7 @@ function renderConciliacaoResult(){
     </div>
     <div style="overflow-x:auto;">
     <table class="items">
-      <thead><tr><th>Item</th><th>Qtd</th><th>Status</th><th>Código convênio</th><th>Descrição convênio</th><th>Valor unit.</th><th>Subtotal</th></tr></thead>
+      <thead><tr><th>Item</th><th>Qtd</th><th>Status</th><th>Código convênio</th><th>Descrição convênio</th><th>Valor unit.</th><th>Subtotal</th><th></th></tr></thead>
       <tbody>${linhas}</tbody>
     </table>
     </div>
@@ -2406,7 +2430,276 @@ function renderConciliacaoResult(){
       <span class="rt-value">${formatBRL(total)}</span>
     </div>
   `;
+
+  box.querySelectorAll('[data-corrigir]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      conciliacaoEditandoChave = btn.dataset.corrigir;
+      renderConciliacaoResult();
+    });
+  });
+  box.querySelectorAll('[data-desfazer]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if(!confirm('Desfazer essa memorização? O item volta a ser localizado automaticamente.')) return;
+      try{
+        const auth = getIdentidadeFat();
+        if(!auth) throw new Error('Faça login novamente.');
+        await rpcFat('ca_apagar_memoria', {p_nome: auth.nome, p_senha: auth.senha, p_id: btn.dataset.desfazer});
+        CA_MEMORIA = CA_MEMORIA.filter(m => m.id !== btn.dataset.desfazer);
+        renderConciliacaoResult();
+      }catch(e){ alert('Erro ao desfazer: ' + e.message); }
+    });
+  });
+  const cancelarBtn = box.querySelector('#conciliacaoCorrigirCancelar');
+  if(cancelarBtn) cancelarBtn.addEventListener('click', () => { conciliacaoEditandoChave = null; renderConciliacaoResult(); });
+  const salvarBtn = box.querySelector('#conciliacaoCorrigirSalvar');
+  if(salvarBtn){
+    salvarBtn.addEventListener('click', async () => {
+      const busca = document.querySelector('#conciliacaoCorrigirBusca').value.trim();
+      const erro = document.querySelector('#conciliacaoCorrigirErro');
+      const codigoDigitado = busca.split(' — ')[0].trim();
+      const itemTabela = tabela.find(t => t.codigo === codigoDigitado);
+      if(!itemTabela){
+        erro.textContent = 'Selecione um item válido da lista (clique numa sugestão).';
+        erro.classList.remove('hub-oculto');
+        return;
+      }
+      salvarBtn.disabled = true;
+      salvarBtn.textContent = 'Salvando…';
+      try{
+        const auth = getIdentidadeFat();
+        if(!auth) throw new Error('Faça login novamente.');
+        const chave = salvarBtn.dataset.chave;
+        const itemNome = decodeURIComponent(salvarBtn.dataset.item);
+        await rpcFat('ca_salvar_memoria', {
+          p_nome: auth.nome, p_senha: auth.senha, p_convenio: selConciliacaoConvenio,
+          p_chave_item: chave, p_item_original: itemNome,
+          p_codigo: itemTabela.codigo, p_descricao: itemTabela.descricao,
+          p_categoria: itemTabela.categoria || null, p_unidade: itemTabela.unidade || null, p_valor: itemTabela.valor,
+        });
+        CA_MEMORIA = CA_MEMORIA.filter(m => !(m.convenio === selConciliacaoConvenio && m.chave_item === chave));
+        CA_MEMORIA.push({
+          id: selConciliacaoConvenio + '|' + chave, convenio: selConciliacaoConvenio, chave_item: chave,
+          item_original: itemNome, codigo: itemTabela.codigo, descricao: itemTabela.descricao,
+          categoria: itemTabela.categoria, unidade: itemTabela.unidade, valor: itemTabela.valor, valido: true,
+        });
+        conciliacaoEditandoChave = null;
+        renderConciliacaoResult();
+      }catch(e){
+        erro.textContent = 'Erro ao salvar: ' + e.message;
+        erro.classList.remove('hub-oculto');
+        salvarBtn.disabled = false;
+        salvarBtn.textContent = 'Salvar correção';
+      }
+    });
+  }
 }
+
+// ============================================
+// IMPORTAR TABELA DE CONVÊNIO NOVA (16/09/2026) — porta lib/normalizar.js
+// e lib/xlsxImporter.js do sistema antigo pro navegador (usa a biblioteca
+// SheetJS/xlsx via CDN, já carregada no <head>). Substitui TODAS as linhas
+// do convênio escolhido pelo conteúdo do arquivo — pedido do usuário, pra
+// poder desligar o sistema antigo com segurança (também precisava de
+// Editar memória, ver `conciliacaoEditandoChave` acima).
+// ============================================
+function normalizarTextoCA(texto){
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9%°.,\/\s-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function chaveNormalizadaCA(texto){
+  return normalizarTextoCA(texto).replace(/[.,\/°-]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+const CANDIDATOS_XLSX_CA = {
+  codigo: ['CODIGO', 'PRODUTO'],
+  descricao: ['DESCRICAO', 'DESCRICAO TECNICA PADRAO', 'NOME COMERCIAL', 'NOME TECNICO'],
+  nomeComercial: ['NOME COMERCIAL'],
+  valor: ['VALOR SC SAUDE', 'VL. PG. PROD. CO', 'VL PG PROD CO', 'NEGOCIACAO VALOR', 'VALOR'],
+  unidade: ['UNIDADE', 'UND_MED', 'UND MED'],
+};
+function normalizarCabecalhoCA(celula){
+  return normalizarTextoCA(String(celula || '').replace(/[\r\n]+/g, ' '));
+}
+function acharColunaCA(headerRow, candidatos){
+  for(const cand of candidatos){
+    const idx = headerRow.findIndex(h => h === cand);
+    if(idx !== -1) return idx;
+  }
+  for(const cand of candidatos){
+    const idx = headerRow.findIndex(h => h.includes(cand));
+    if(idx !== -1) return idx;
+  }
+  return -1;
+}
+function inferirCategoriaCA(nomeAba){
+  const n = normalizarTextoCA(nomeAba);
+  if(n.includes('OPME')) return 'OPME';
+  if(n.includes('MED')) return 'Medicamento';
+  if(n.includes('MAT') || n.includes('INSUMO')) return 'Material';
+  return 'Outro';
+}
+function montarItemXlsxCA(dados){
+  if(!dados.codigo || !dados.descricao) return null;
+  const textoBusca = chaveNormalizadaCA([dados.descricao, dados.nomeComercial].filter(Boolean).join(' '));
+  return {
+    codigo: dados.codigo, descricao: dados.descricao, nomeComercial: dados.nomeComercial || null,
+    unidade: dados.unidade || null, valor: dados.valor, categoria: dados.categoria, textoBusca,
+    tokens: textoBusca ? textoBusca.split(' ').filter(t => t.length > 1) : [],
+  };
+}
+function parseCentavosCA(valor){
+  const n = parseInt(String(valor || '').replace(/\D/g, ''), 10);
+  return Number.isFinite(n) ? n / 100 : null;
+}
+function parseValorMonetarioCA(valor){
+  if(valor == null || valor === '') return null;
+  if(typeof valor === 'number') return valor;
+  let s = String(valor).trim().replace(/r\$/i, '').trim();
+  if(!s) return null;
+  const posVirgula = s.lastIndexOf(',');
+  const posPonto = s.lastIndexOf('.');
+  if(posVirgula === -1 && posPonto === -1){
+    const n = parseFloat(s);
+    return Number.isFinite(n) ? n : null;
+  }
+  const decimal = posVirgula > posPonto ? ',' : '.';
+  const milhar = decimal === ',' ? '.' : ',';
+  s = s.split(milhar).join('');
+  if(decimal === ',') s = s.replace(',', '.');
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : null;
+}
+function importarAbaBrasindiceCA(linhas, categoria){
+  const itens = [];
+  for(let i = 1; i < linhas.length; i++){
+    const linha = linhas[i];
+    const codigo = String(linha[4] ?? '').trim();
+    const nome = String(linha[3] ?? '').trim();
+    const apresentacao = String(linha[5] ?? '').trim();
+    if(!codigo || (!nome && !apresentacao)) continue;
+    const descricao = apresentacao ? `${nome} - ${apresentacao}` : nome;
+    const valor = parseCentavosCA(linha[6]);
+    const item = montarItemXlsxCA({codigo, descricao, nomeComercial: nome, unidade: null, valor, categoria});
+    if(item) itens.push(item);
+  }
+  return itens;
+}
+function importarAbaXlsxCA(ws, nomeAba){
+  const linhas = XLSX.utils.sheet_to_json(ws, {header: 1, defval: '', raw: false});
+  const categoria = inferirCategoriaCA(nomeAba);
+  let headerIdx = -1;
+  let colunas = null;
+  for(let i = 0; i < Math.min(30, linhas.length); i++){
+    const linhaNormalizada = linhas[i].map(normalizarCabecalhoCA);
+    const codigoIdx = acharColunaCA(linhaNormalizada, CANDIDATOS_XLSX_CA.codigo);
+    const descricaoIdx = acharColunaCA(linhaNormalizada, CANDIDATOS_XLSX_CA.descricao);
+    const valorIdx = acharColunaCA(linhaNormalizada, CANDIDATOS_XLSX_CA.valor);
+    if(codigoIdx !== -1 && descricaoIdx !== -1 && valorIdx !== -1){
+      headerIdx = i;
+      colunas = {
+        codigo: codigoIdx, descricao: descricaoIdx,
+        nomeComercial: acharColunaCA(linhaNormalizada, CANDIDATOS_XLSX_CA.nomeComercial),
+        valor: valorIdx, unidade: acharColunaCA(linhaNormalizada, CANDIDATOS_XLSX_CA.unidade),
+      };
+      break;
+    }
+  }
+  if(headerIdx === -1) return importarAbaBrasindiceCA(linhas, categoria);
+  const itens = [];
+  let vaziasSeguidas = 0;
+  for(let i = headerIdx + 1; i < linhas.length; i++){
+    const linha = linhas[i];
+    const codigo = String(linha[colunas.codigo] ?? '').trim();
+    const descricao = String(linha[colunas.descricao] ?? '').trim();
+    if(!codigo && !descricao){
+      vaziasSeguidas++;
+      if(vaziasSeguidas >= 3) break;
+      continue;
+    }
+    vaziasSeguidas = 0;
+    if(!codigo || !descricao) continue;
+    const nomeComercial = colunas.nomeComercial !== -1 ? String(linha[colunas.nomeComercial] ?? '').trim() : '';
+    const unidade = colunas.unidade !== -1 ? String(linha[colunas.unidade] ?? '').trim() : '';
+    const valor = parseValorMonetarioCA(linha[colunas.valor]);
+    const item = montarItemXlsxCA({codigo, descricao, nomeComercial, unidade, valor, categoria});
+    if(item) itens.push(item);
+  }
+  return itens;
+}
+function importarPlanilhaConvenioCA(workbook){
+  let itens = [];
+  workbook.SheetNames.forEach(nomeAba => {
+    itens = itens.concat(importarAbaXlsxCA(workbook.Sheets[nomeAba], nomeAba));
+  });
+  const resumo = itens.reduce((acc, item) => {
+    if(item.categoria === 'Material') acc.mat++;
+    else if(item.categoria === 'Medicamento') acc.med++;
+    else if(item.categoria === 'OPME') acc.opme++;
+    else acc.outro++;
+    return acc;
+  }, {mat: 0, med: 0, opme: 0, outro: 0});
+  return {itens, resumo};
+}
+
+let importarTabelaItensPendentes = null;
+document.querySelector('#importarTabelaArquivo').addEventListener('change', (e) => {
+  const arquivo = e.target.files[0];
+  const preview = document.querySelector('#importarTabelaPreview');
+  importarTabelaItensPendentes = null;
+  if(!arquivo){ preview.innerHTML = ''; return; }
+  preview.innerHTML = '<div class="result-empty">Lendo arquivo…</div>';
+  const leitor = new FileReader();
+  leitor.onload = (ev) => {
+    try{
+      const workbook = XLSX.read(new Uint8Array(ev.target.result), {type: 'array'});
+      const { itens, resumo } = importarPlanilhaConvenioCA(workbook);
+      if(itens.length === 0){
+        preview.innerHTML = '<div class="result-empty">Não encontrei nenhum item reconhecível nesse arquivo (confira se tem colunas de código, descrição e valor).</div>';
+        return;
+      }
+      importarTabelaItensPendentes = itens;
+      preview.innerHTML = `
+        <div class="login-card" style="margin-top:10px;">
+          <div class="login-row"><span class="login-label">Itens encontrados</span><span class="login-valor">${itens.length}</span></div>
+          <div class="login-row"><span class="login-label">Materiais</span><span class="login-valor">${resumo.mat}</span></div>
+          <div class="login-row"><span class="login-label">Medicamentos</span><span class="login-valor">${resumo.med}</span></div>
+          <div class="login-row"><span class="login-label">OPME</span><span class="login-valor">${resumo.opme}</span></div>
+          <div class="login-row"><span class="login-label">Outros</span><span class="login-valor">${resumo.outro}</span></div>
+          <p class="com-erro hub-oculto" id="importarTabelaErro"></p>
+          <div class="com-botoes" style="justify-content:flex-start;">
+            <button type="button" class="com-btn com-btn-primario" id="importarTabelaConfirmar">Confirmar importação (substitui a tabela atual)</button>
+          </div>
+        </div>`;
+      document.querySelector('#importarTabelaConfirmar').addEventListener('click', async () => {
+        const btn = document.querySelector('#importarTabelaConfirmar');
+        const erro = document.querySelector('#importarTabelaErro');
+        const convenio = document.querySelector('#importarTabelaConvenio').value;
+        btn.disabled = true;
+        btn.textContent = 'Importando…';
+        try{
+          const auth = getIdentidadeFat();
+          if(!auth) throw new Error('Faça login novamente.');
+          const total = await rpcFat('ca_substituir_tabela_convenio', {p_nome: auth.nome, p_senha: auth.senha, p_convenio: convenio, p_itens: importarTabelaItensPendentes});
+          CA_TABELAS_CONVENIO[convenio] = importarTabelaItensPendentes;
+          preview.innerHTML = `<div class="result-empty">Importado com sucesso: ${total} linhas na tabela de ${convenio}.</div>`;
+          if(selConciliacaoConvenio === convenio) renderConciliacaoResult();
+        }catch(e){
+          erro.textContent = 'Erro ao importar: ' + e.message;
+          erro.classList.remove('hub-oculto');
+          btn.disabled = false;
+          btn.textContent = 'Confirmar importação (substitui a tabela atual)';
+        }
+      });
+    }catch(e){
+      preview.innerHTML = `<div class="result-empty">Erro ao ler o arquivo: ${e.message}</div>`;
+    }
+  };
+  leitor.readAsArrayBuffer(arquivo);
+});
 
 document.querySelector('#searchConciliacaoProcedimento').addEventListener('input', renderConciliacaoProcedimentoGrid);
 renderConciliacaoConvenioGrid();
@@ -2725,10 +3018,28 @@ document.querySelector('#tabPorCirurgiaFarmacia').addEventListener('click', () =
     </div>
   </div>
 
+  <div class="step">
+    <div class="step-head">
+      <h2>Importar tabela de convênio nova</h2>
+      <span class="step-help">Substitui TODAS as linhas do convênio escolhido pelo conteúdo da planilha (.xlsx).</span>
+    </div>
+    <div class="result" id="importarTabelaResult">
+      <label class="com-label">Convênio</label>
+      <select id="importarTabelaConvenio" class="search-input" style="max-width:280px;">
+        <option value="sc_saude">SC SAÚDE</option>
+        <option value="unimed">UNIMED</option>
+        <option value="brasindice">BRASÍNDICE</option>
+      </select>
+      <label class="com-label">Arquivo (.xlsx)</label>
+      <input type="file" id="importarTabelaArquivo" accept=".xlsx,.xls">
+      <div id="importarTabelaPreview"></div>
+    </div>
+  </div>
+
 </main>
 
 <footer>
-  <strong>Conciliação de Materiais e Medicamentos — Conta Aberta.</strong> Compara o kit da cirurgia (produtos + quantidades cadastrados pela farmácia) com a tabela de preço de SC Saúde/Unimed/Brasíndice e a memória de decisões manuais. Primeira versão: só consulta — importar tabela nova continua feito fora do Portal por enquanto.
+  <strong>Conciliação de Materiais e Medicamentos — Conta Aberta.</strong> Compara o kit da cirurgia (produtos + quantidades cadastrados pela farmácia) com a tabela de preço de SC Saúde/Unimed/Brasíndice e a memória de decisões manuais.
 </footer>
 
 </div>
