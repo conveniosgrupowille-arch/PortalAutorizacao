@@ -811,6 +811,7 @@
 <div class="tabs-nav">
   <button type="button" class="tab-btn active" data-target="tabFaturamento">Faturamento</button>
   <button type="button" class="tab-btn" data-target="tabComparativo">Comparativo por Cirurgia</button>
+  <button type="button" class="tab-btn" data-target="tabParceiros">Informações Sobre Faturamento de Parceiros</button>
 </div>
 
 <div id="tabFaturamento" class="tab-panel">
@@ -905,6 +906,29 @@
 </main>
 </div>
 
+<div id="tabParceiros" class="tab-panel" style="display:none;">
+<main>
+
+  <div class="step active">
+    <div class="step-head">
+      <h2>Empresas e sindicatos parceiros</h2>
+      <span class="step-help">Contato, dados de faturamento e como cada parceiro paga — para empresas e sindicatos que fecham fatura mensal (não convênios de saúde tradicionais, que ficam dentro do card do próprio convênio).</span>
+    </div>
+    <input type="text" id="searchParceiros" class="search-input" placeholder="Buscar por nome do parceiro…">
+    <div class="result" id="parceirosResult"></div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <h2>Sindicatos com pagamento no ato</h2>
+      <span class="step-help">Não entram no ciclo de faturamento — o atendimento é pago diretamente pelo paciente/sindicato no momento da consulta. Guardado aqui só como contato de referência.</span>
+    </div>
+    <div class="result" id="sindicatosAtoResult"></div>
+  </div>
+
+</main>
+</div>
+
 <footer>
   <strong>Base: portal de autorização HUB LASER, com faturamento adicionado.</strong> Dados de autorização vêm de: planilha de contas abertas original (9 procedimentos), Tabela HUB LASER (UNIMED), Tabela TUSS + aditivos (BRADESCO), planilha de Honorários e Pacotes (LEVMED), e os contratos/tabelas de NOSSA SAÚDE, SAÚDE CAIXA e SELECT. Valor e Fator de Correção vêm da planilha "2 - KIT CIRURGIAS CONTA ABERTA 2026" (kit de autorização/faturamento) para os procedimentos já cadastrados — quando não houver valor lançado na planilha de origem, as colunas aparecem como "—". Fator de Correção: 100% no 1º olho operado, e o percentual do convênio (normalmente 70%, podendo ser 50%) quando há um 2º olho na mesma sessão. Para os convênios sem dados em cada procedimento, o portal indica que os dados não foram encontrados.
 </footer>
@@ -916,7 +940,7 @@ const root = document.getElementById('view-faturamento');
 
 let DATA = {};
 const ORDER = ["LASIK", "PRK", "CALAZIO", "PTERIGIO", "TUMOR DE CONJUNTIVA", "TRATAMENTO INTRA OCULAR QUIMIOT", "FACECTOMIA COM IMPLANTE DE LIO", "VITRECTOMIA VIA PARS", "RETINOPEXIA", "HUB_30301017", "HUB_30301084", "HUB_30301157", "HUB_30301165", "HUB_30301173", "HUB_30301181", "HUB_30301190", "HUB_30301211", "HUB_30301238", "HUB_30301262", "HUB_30302056", "HUB_30302102", "HUB_30302137", "HUB_30303010", "HUB_30303044", "HUB_30303087", "HUB_30304024", "HUB_30304040", "HUB_30304059", "HUB_30304067", "HUB_30304083", "HUB_30304156", "HUB_30305012", "HUB_30305020", "HUB_30305047", "HUB_30306035", "HUB_30306043", "HUB_30306051", "HUB_30306060", "HUB_30307031", "HUB_30307040", "HUB_30307066", "HUB_30307074", "HUB_30307082", "HUB_30307090", "HUB_30307104", "HUB_30307112", "HUB_30307139", "HUB_30308038", "HUB_30309018", "HUB_30309026", "HUB_30310032", "HUB_30310040", "HUB_30311039", "HUB_30311047", "HUB_30311055", "HUB_30312094", "HUB_30312108", "HUB_30312132", "HUB_30313031", "HUB_30313058", "HUB_30313066", "BR_30301025", "BR_30301033", "BR_30301050", "BR_30301068", "BR_30301076", "BR_30301114", "BR_30301122", "BR_30301130", "BR_30301149", "BR_30301203", "BR_30301220", "BR_30301246", "BR_30301254", "BR_30302013", "BR_30302021", "BR_30302030", "BR_30302048", "BR_30302064", "BR_30302072", "BR_30302080", "BR_30302099", "BR_30302110", "BR_30302129", "BR_30303028", "BR_30303036", "BR_30303052", "BR_30303079", "BR_30304016", "BR_30304032", "BR_30304075", "BR_30305039", "BR_30306019", "BR_30306078", "BR_30306116", "BR_30307015", "BR_30307023", "BR_30307058", "BR_30308011", "BR_30308020", "BR_30308046", "BR_30309034", "BR_30310016", "BR_30310024", "BR_30310059", "BR_30310067", "BR_30310075", "BR_30310083", "BR_30310091", "BR_30310105", "BR_30310113", "BR_30310148", "BR_30310156", "BR_30310172", "BR_30311012", "BR_30311020", "BR_30311063", "BR_30312019", "BR_30312027", "BR_30312035", "BR_30312043", "BR_30312051", "BR_30312060", "BR_30312078", "BR_30313015", "BR_30313023", "BR_30313040", "BR_30313074", "BR_31501010", "NS_30301106", "NS_30303095", "NS_30312124", "NS_30312140", "NS_31501028", "SC2_30312116", "SC2_30312159", "BR_30301092", "BR_30301270", "BR_30303117", "BR_30304113", "BR_30304121", "BR_30304130", "BR_30304148", "BR_30306086"];
-const CONVENIOS = ["BRADESCO", "SC SAUDE", "UNIMED", "SAUDE CAIXA", "LEVMED", "NOSSA SAUDE", "SELECT", "MEDISERVECE", "SINDICATO DAS CARGAS"];
+const CONVENIOS = ["BRADESCO", "SC SAUDE", "UNIMED", "SAUDE CAIXA", "LEVMED", "NOSSA SAUDE", "SELECT", "MEDISERVECE", "AMIL", "GEAP", "SULAMERICA", "SINDICATO DAS CARGAS"];
 
 let PACOTES = [];
 
@@ -1718,17 +1742,7 @@ window.__setDataFaturamento = function(dataProcedimentos, pacotes){
 // usuario, convenio por convenio - por enquanto so' tem o exemplo que ele
 // mandou (Sindicato das Cargas).
 // ============================================
-const INFORMACOES_FATURAMENTO = {
-  'SINDICATO DAS CARGAS': {
-    dataEnvio: 'Primeiro dia útil do mês',
-    email: 'sindicato02@expresso.com.br',
-    contatos: [
-      { rotulo: 'Sindicato de Carga (WhatsApp — Faturamento)', telefone: '47 9915-6384' }
-    ],
-    enderecoEnvio: 'Av. Cel. Procópio Gomes, 506 - Bucarein, Joinville - SC, 89202-300, Brasil',
-    observacoes: 'A NF é emitida após pagamento.'
-  }
-};
+const INFORMACOES_FATURAMENTO = {"UNIMED": {"contato": "CRISTINA (rede credenciada)", "email": "redeassistencial@joinville.unimedsc.com.br", "telefone": "47 3441-9416", "comoRecebeGuias": "Recebe as guias diariamente e o faturamento é feito todos os dias. Pagamento geralmente dias 15 pessoa juridica Após a emissão do relatório de pagamento por parte da operadora emite nota natureza da op. 105, e 20 de cada mês pessoa fisica nao emite nota.", "faturamento": "Diário, fechamento do mês dia 25.", "comoConvenioPaga": "PJ - IOCW / TED UNICRED VIA BANCO", "reajuste": "Reajuste Jan 2025", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 25, "previsaoRecebimento": "dia 15 e dia 20", "diasFaturarObs": "Não envia nada", "dadosBancarios": [{"cnpj": "80.653.975/0001-58", "nome": "Unimed Extremo Oeste", "banco": null, "agencia": null, "conta": null}, {"cnpj": "76.590.884/0001-43", "nome": "Unimed Federação", "banco": null, "agencia": null, "conta": null}, {"cnpj": "82.602.327/0001-06", "nome": "Unimed Joinville", "banco": null, "agencia": null, "conta": null}]}, "BRADESCO": {"contato": "ROBSON", "email": "robson.p.santos@bradescoseguros.com.br ; contatoescritoriojoinville@bradescoseguros.com.br", "telefone": "3461-3744 / 30037333 Orizon (Duvidas)", "comoRecebeGuias": "Recebe as guias diariamente, dependendo do volume já fatura ou faz o faturamento semanalmente via Orizon, no momento do faturamento já fecha o lote e automaticamente já vai para o convênio. A nota fiscal só é emitida, após a emissão do relatório pelo convênio. O pagamento ocorre após 45 dias do faturamento.", "faturamento": "Semanal com fechamento de lote", "comoConvenioPaga": "PJ - IOCW / Ted Bradesco / pgto via banco", "reajuste": "Reajuste Jan 2025", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 30, "previsaoRecebimento": "45 DIAS", "diasFaturarObs": "Digitaliza - envia Portal - NF após o pagamento", "dadosBancarios": [{"cnpj": "92.693.118/0001-60", "nome": "Bradesco Saúde", "banco": "ITAU", "agencia": "2941", "conta": "98630-5"}, {"cnpj": "15.011.651/0001-54", "nome": "Saúde Bradesco Plano", "banco": "ITAU", "agencia": "2941", "conta": "98628-9"}]}, "SC SAUDE": {"contato": "ANDREIA", "telefone": "8006446040", "comoRecebeGuias": "Recebe as guias diariamente, fatura diariamente e manda o lote 1 x por semana com fechamento de lote ATE O UTIMO DIA DE CADA MÊS. O pagamento é com 60 dias após o relatório e emissão de NF", "faturamento": "Semanal com fechamento de lote dia 18", "faturamentoObs": "Emite NF para pagamento COD 105", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Sem previsao devido as mudanças no estado, geralmente inicio do ano.", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 30, "previsaoRecebimento": "45 DIAS", "diasFaturarObs": "Não envia nada - NF após conferencia demonstrativo", "dadosBancarios": [{"cnpj": "82.951.310/0001-56", "nome": "SC Saúde", "banco": null, "agencia": null, "conta": null}]}, "SAUDE CAIXA": {"contato": "somente por meio do fale conosco", "email": "0800 e fale conosco", "comoRecebeGuias": "Recebe as guias diariamente quanto tem atendimento, confere e guarda na pasta para faturamento na data (ver calendario do Mês). Fatura, fecha o lote e envia para o convênio as guias digitalizados e anexados pelo site TRUE AUDITORIA tipo de arquivo.zip ou .pdf. O pagamento é mediante relatório após 60 dias da data do faturamento.", "faturamento": "todo dia 26/cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste out/2025", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 26, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Digitaliza - envia Portal - NF após conferencia demonstrativo", "dadosBancarios": [{"cnpj": "00.360.305/0419-94", "nome": "Saúde Caixa", "banco": null, "agencia": null, "conta": null}]}, "AMIL": {"contato": "CARLA", "email": "carlacarvalho@amil.com.br; consultoriossul@amil.com.br", "comoRecebeGuias": "Recebe as guias diariamente quando há atendimento, faz as conferências e guarda na pasta para faturamento até 5º dia do mês. Na data do faturamento, fatura tudo via sistema e fecha o lote, ao fechar o lote vai automaticamente para o convênio não sendo necessário emitir NF. Após o faturamento, pagamento com 30 dias", "faturamento": "todo dia 30/cada mês", "faturamentoObs": "Não emitir NF", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Maio", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 4, "previsaoRecebimento": "30 DIAS", "dadosBancarios": [{"cnpj": "29.309.127/0001-79", "nome": "AMIL ASSISTENCIA MEDICA INTERNACIONAL SA", "banco": "BANCO", "agencia": "AG", "conta": "CC"}]}, "GEAP": {"contato": "FABIO", "email": "Fabio Henrique Laureth Martins <fabio.martins@geap.com.br>;\"prestador.sc\" <prestador.sc@geap.org.br>", "telefone": "48 2106-6331 /48 2106-6332 /48 2106-6364 / 482106-6308", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento, confere e guarda na pasta para faturar na data até 01 A 10 . Como esse convênio são poucas guias, geralmente fatura-se 1x ao mês. Pagamento após 60 dias mediante NF e relatório de pagamento gerado no sistema do convênio. Esse convênio tem uma particularidade que é escanear todas as guias e anexar no portal na hora do faturamento.", "faturamento": "Todo dia 04/cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Bradesco/ pgto via banco", "reajuste": "Reajuste 07/10/2024", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 10, "previsaoRecebimento": "60 DIAS", "diasFaturarObs": "Digitaliza - envia Portal", "dadosBancarios": [{"cnpj": "03.658.432/0019-01", "nome": "GEAP", "banco": "CAIXA", "agencia": "1897", "conta": "1032-0"}]}, "LEVMED": {"contato": "MABEL -", "email": "credenciamento1@levmed.com.br; financeiro@levmed.com.br", "telefone": "(47) 99789-0041 Credenciamento\n(47) 99640-0301 Autorização", "telefoneObs": "Mabel", "comoRecebeGuias": "O faturamento dos prestadores será efetivado mediante apresentação da\nconta e do envio das guias manuais assinadas ecarimbadas pelo paciente e\nmédico, em envelope pardo e lacrado, até o dia 01 primeiro dia util de cada mês, até o dia 01 ( dia) do mês subsequente iremos disponibilizar o demonstrativo de pagamento eo prestador terá até o dia 15 (quinze) do mês subsequente para emissão de nota fiscal, a NF deverá ser enviada no e-mail\nfinanceiro@levmed.com.br (importante que o pagamento será efetuado apenas com a NF emitida e enviada). O pagamento ocorrerá no dia 20 (vinte) do mês subsequente.", "faturamento": "Envio até dia 01/03, processamento de 01 a 31/03, demonstrativo disponivel 01/04, envio da nota fiscal ate dia 15/04, pagamento 20/04", "faturamentoObs": "NF emitida após demonstrativo da operadora", "comoConvenioPaga": "B-033 / ag 3176 / c.c 13008310-7 Santander", "reajuste": "Reajuste 17/09/2025", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 1, "previsaoRecebimento": "45 DIAS", "diasFaturarObs": "Cópia - Moto Boy - NF após conferencia demonstrativo", "dadosBancarios": [{"cnpj": "35.657.268/0001-85", "nome": "Levmed", "banco": null, "agencia": null, "conta": null}]}, "MEDISERVECE": {"contato": "ROBSON", "email": "robson.p.santos@bradescoseguros.com.br", "telefone": "contatoescritoriojoinville@bradescoseguros.com.br", "comoRecebeGuias": "Recebe as guias diariamente quanto tem atendimento, como o volume é bem baixo, confere e guarda na pasta para faturar 1x por semana, fatura e envia lote é feito tudo de forma digital sistema Orizon. O convênio paga geralmente nos dias 12 e 28/mês, via relatório emitido via sistema Medservice e se emite NF depois. Enviar as guias por motoboy até a central Medservice", "faturamento": "Semanal com fechamento de lote", "faturamentoObs": "Emite NF após pagamento", "comoConvenioPaga": "PJ - IOCW /TED -Bradesco/ pgto via banco", "reajuste": "Reajuste jan/2025", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 30, "previsaoRecebimento": "45 DIAS", "diasFaturarObs": "Cópia - Moto Boy - NF após o pagamento", "dadosBancarios": [{"cnpj": "57.746.455/0001-78", "nome": "Medservice", "banco": null, "agencia": null, "conta": null}]}, "SULAMERICA": {"contato": "(11) 4004-5901 / chat", "email": "não tem", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento, confere e guarda na pasta para faturar na data até 04/mês. Como esse convênio são poucas guias, geralmente fatura-se 1x ao mês. Pagamento após 60 dias mediante NF e relatório de pagamento gerado no sistema do convênio. verificar a tabela de cronograma", "faturamento": "Todo dia 04/cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Bradesco/ pgto via banco", "reajuste": "Reajuste setembro /2025 solicitar entre 01/01 a 31/03", "observacoes": "Demais médicos atendem sem credenciamento. Valores acordados em contrato", "diaEntrega": 7, "previsaoRecebimento": "50 DIAS", "diasFaturarObs": "Digitaliza - envia Portal", "dadosBancarios": [{"cnpj": "02.866.602/0001-51///01.685.053/0001-56", "nome": "Sul América", "banco": null, "agencia": null, "conta": null}]}, "SELECT": {"contato": "https://selectoperadora.com.br", "email": "apoio.prestador@redeselect.com.br", "telefone": "0800 224 2808 / (41)98883-2980", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento, confere e guarda na pasta para faturar DE 1 A 10 DE CADA MÊS. Pagamento após 50 DIAS no dia ultimo dia de cada mês, após conferencia do plano temos ate 5 dias para emitir a nota. verificar a tabela de cronograma, as guias devem ser scaneadas e anexadas no portal", "faturamento": "de 1 a 10 de cada mês", "comoConvenioPaga": "PJ - IOCW /TED/ SISPRIME", "reajuste": "Reajuste JULHO/2026"}, "NOSSA SAUDE": {"contato": "https://www.nossasaude.com.br/area-do-prestador", "email": "contasmedicas@nossasaude.com.br", "telefone": "41 9977-4519 WHATS", "telefoneObs": "Rovane", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento, confere e guarda na pasta para faturar DE 1 A 10 DE CADA MÊS. Pagamento após 50 DIAS no dia ultimo dia de cada mês, após conferencia do plano temos ate 5 dias para emitir a nota. verificar a tabela de cronograma, as guias devem ser scaneadas e anexadas no portal", "faturamento": "de 1 a 10 de cada mês", "comoConvenioPaga": "PJ - IOCW /TED/ SISPRIME", "reajuste": "Reajuste agosto/2026"}};
 
 let painelAtivoConvenioFat = 'cirurgias';
 const convenioMenuButtonsFat = Array.from(root.querySelectorAll('#convenioMenuFaturamento .convenio-menu-item'));
@@ -1761,15 +1775,91 @@ function renderInformacoesFaturamento(){
     return;
   }
   let linhas = '';
-  if(info.dataEnvio) linhas += `<div class="login-row"><span class="login-label">Data do envio</span><span class="login-valor">${info.dataEnvio}</span></div>`;
+  if(info.diaEntrega) linhas += `<div class="login-row"><span class="login-label">Dia de entrega/faturamento</span><span class="login-valor">${info.diaEntrega}</span></div>`;
+  if(info.previsaoRecebimento) linhas += `<div class="login-row"><span class="login-label">Previsão de recebimento</span><span class="login-valor">${info.previsaoRecebimento}</span></div>`;
+  if(info.diasFaturarObs) linhas += `<div class="login-row"><span class="login-label">Como enviar</span><span class="login-valor">${info.diasFaturarObs}</span></div>`;
+  if(info.contato) linhas += `<div class="login-row"><span class="login-label">Contato</span><span class="login-valor">${info.contato}</span></div>`;
   if(info.email) linhas += `<div class="login-row"><span class="login-label">E-mail</span><span class="login-valor">${info.email}</span></div>`;
-  (info.contatos || []).forEach(c => {
-    linhas += `<div class="login-row"><span class="login-label">${c.rotulo || 'Telefone'}</span><span class="login-valor">${c.telefone}</span></div>`;
-  });
-  if(info.enderecoEnvio) linhas += `<div class="login-row"><span class="login-label">Endereço p/ guias originais</span><span class="login-valor">${info.enderecoEnvio}</span></div>`;
+  if(info.telefone) linhas += `<div class="login-row"><span class="login-label">Telefone</span><span class="login-valor">${info.telefone}${info.telefoneObs ? ' (' + info.telefoneObs + ')' : ''}</span></div>`;
+  if(info.faturamento) linhas += `<div class="login-row"><span class="login-label">Ciclo de faturamento</span><span class="login-valor">${info.faturamento}${info.faturamentoObs ? ' — ' + info.faturamentoObs : ''}</span></div>`;
+  if(info.comoRecebeGuias) linhas += `<div class="login-row"><span class="login-label">Como recebemos/enviamos</span><span class="login-valor">${info.comoRecebeGuias}</span></div>`;
+  if(info.comoConvenioPaga) linhas += `<div class="login-row"><span class="login-label">Como o convênio paga</span><span class="login-valor">${info.comoConvenioPaga}</span></div>`;
+  if(info.reajuste) linhas += `<div class="login-row"><span class="login-label">Reajuste</span><span class="login-valor">${info.reajuste}</span></div>`;
   if(info.observacoes) linhas += `<div class="login-row"><span class="login-label">Observações</span><span class="login-valor">${info.observacoes}</span></div>`;
-  box.innerHTML = head + `<div class="login-card">${linhas}</div>`;
+  let bancario = '';
+  if(info.dadosBancarios && info.dadosBancarios.length){
+    bancario = info.dadosBancarios.map(b => {
+      const partes = [b.cnpj ? 'CNPJ ' + b.cnpj : null, b.banco ? 'Banco ' + b.banco : null, b.agencia ? 'Ag ' + b.agencia : null, b.conta ? 'CC ' + b.conta : null].filter(Boolean).join(' · ');
+      return `<div class="login-row"><span class="login-label">${b.nome || 'Dados bancários'}</span><span class="login-valor">${partes}</span></div>`;
+    }).join('');
+  }
+  box.innerHTML = head + `<div class="login-card">${linhas}${bancario}</div>`;
 }
+
+// ============================================
+// ABA "Informações Sobre Faturamento de Parceiros" (16/09/2026) - dado
+// extraido de DETALHES CONVENIOS_faturamento.xlsx (planilha do usuario,
+// pasta Downloads): empresas e sindicatos que fecham fatura mensal com o
+// Hub Laser (contato, ciclo de faturamento, como pagam, dados bancarios) -
+// diferente dos convenios de saude tradicionais, que ficam dentro do card
+// (aba "Informações para Faturamento" por convenio, acima). Inclui tambem
+// os sindicatos que pagam no ato (nao entram no ciclo de faturamento, so'
+// contato de referencia).
+// ============================================
+const PARCEIROS_FATURAMENTO = [{"nome": "Empresa Dohler", "contato": "chaiane", "email": "chaiane@dohler.com.br / isabel@dohler.com.br", "telefone": "47 3441 1552/3441-8380", "telefoneObs": "Isabel ou Chaiane", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 1º a 5º de cada mês, envia por email todas as guias com folha de rosto junto com a nota fiscal. Pagamento no dia 10 do mesmo mês.", "faturamento": "Todo dia 1 a 5 de cada mês", "faturamentoObs": "Emite NF para pgto", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "Demais médicos atendem sem credenciamento. Sem valores acordado de desconto", "medicosAptos": "Todos os médicos", "diaEntrega": 1, "previsaoRecebimento": "dia 10", "diasFaturarObs": "Digitaliza - gera NF - envia por email", "datasDiferentes": "SINDICATO DO TRANSPORTE", "dadosBancarios": [{"cnpj": "84.683.408/0001-03", "nome": "Dohler", "banco": "SANTANDER", "agencia": "3176", "conta": "130083107"}]}, {"nome": "EMPRESA LABORE (CLINICA SATO)", "contato": "Catia e Mauricio", "email": "catia@laboresaude.com.br;mauricio@laboresaude.com.br;joyce@laboresaude.com.br>", "telefone": "7 3433-1839 WhatsApp: +55 47 3026-7755", "telefoneObs": "Joyce", "comoRecebeGuias": "Recebe as guias diariamente quando há atendimento, confere e guarda na pasta para faturamento até o dia 1 do Mês. No dia do faturamento, faz uma folha de rosto, anexa as guias e envia MOTOBOY junto com a NF. Pagamento após conferência do convênio (média 30 dias).", "faturamento": "Todo dia 27 de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -UNICRED/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "valor da consulta atualizado 104,5", "medicosAptos": "Todos os médicos", "diaEntrega": 2, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Digitaliza - envia por email - NF após o pagamento", "dadosBancarios": [{"cnpj": "81.158.511/0001-38", "nome": "Labore", "banco": null, "agencia": null, "conta": null}]}, {"nome": "WETZEL Ferro", "contato": "Gabriele", "email": "beneficios@wetzel.com.br", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 2º de cada mês, confere todas as guias, faz uma folha de rosto, anexa todas as guias e envia escaneado para o convênio via e-mail. Após a auditoria do convênio eles emitem uma ordem de compra que emitimos a NF, que será novamente enviada via e-mail para o convênio. Pagamento com 30 dias após faturamento.", "faturamento": "Todo dia 2º de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "Consulta 180,00", "medicosAptos": "Todos os médicos", "diaEntrega": 2, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Digitaliza - gera NF - envia por email", "dadosBancarios": [{"cnpj": "84.683.671/0006-07", "nome": "Wetzel Ferro", "banco": null, "agencia": null, "conta": null}, {"cnpj": "84.683.671/0002-75", "nome": "Wetzel Alumínio", "banco": null, "agencia": null, "conta": null}, {"cnpj": "84.683.671/0007-80", "nome": "Wetzel Alumínio", "banco": null, "agencia": null, "conta": null}]}, {"nome": "FIBERVILLE", "email": "rh@fiberville.com.br; adelson@fiberville.com.br", "comoRecebeGuias": "Recebe as guias, faz as conferências e guarda na pasta, faturamento dependendo do volume é semanal. Como o faturamento pode ser semanal, faz as conferências, faz uma folha de rosto junta com as guias escaneia e encaminha por email. Pagamento com 15 dias após o faturamento. Não emite NF.", "comoConvenioPaga": "PJ - IOCW /TED -UNICRED/ pgto via banco", "observacoes": "consulta R$ 140,00", "medicosAptos": "Todos os médicos", "diaEntrega": 5, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Digitaliza - envia por email", "dadosBancarios": [{"cnpj": "07.995.428/0001-60", "nome": "Fiberville Ind Plastico", "banco": "SANTANDER", "agencia": "3176", "conta": "13001323-8"}, {"cnpj": "19.911.133/0001-48", "nome": "Fiberville termofixos", "banco": "UNICREDI", "agencia": "1726", "conta": "14365-0"}, {"cnpj": "27.507.610/0001-32", "nome": "Fiberville Isolantes Eletricos", "banco": "UNICREDI", "agencia": "1726", "conta": "183401-0"}, {"cnpj": "42.448.064/0001-08", "nome": "Fiberville BMC", "banco": "BRADESCO", "agencia": "3476", "conta": "7253-2"}]}, {"nome": "JOFUNDI/FREMAX ( RAVI)", "contato": "KAUANY", "email": "kauany.silva@ssisaude.com.br.; financeiro@ravisaude.com.br", "telefone": "54 99992-3009 fone e whats", "telefoneObs": "kauany", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 2º de cada mês, confere todas as guias, faz uma folha de rosto, anexa as guia e emite a NF. Escaneia toda essa documentação e envia via e-mail para o convênio. Pagamento após 30 dias do faturamento.", "faturamento": "Todo dia 2º de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "Consulta R$ 85,00", "medicosAptos": "Todos os médicos", "dadosBancarios": [{"cnpj": "00.668.790/0001-88", "nome": "Jofundi/Fremax", "banco": "SISPRIME", "agencia": "48", "conta": "104310"}, {"cnpj": "41.534.136/0002-40", "nome": "RAVI (FREMAX/JOFUNDI", "banco": null, "agencia": null, "conta": null}]}, {"nome": "EMPRESA FUTURA FUNDIÇÃO", "contato": "LILIANE (RH)", "email": "liliane@futurafundicao.com.br", "faturamento": "Todo dia 1º de cada mês", "medicosAptos": "Todos os médicos"}, {"nome": "SINDICATO DOS MECÂNICOS", "contato": "ADRIANA", "email": "financeiro1@sindmecanicos.org.br", "telefone": "4730271183", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 8º, 9º ou 10º de cada mês, confere todas as guias, faz uma folha de rosto e anexa as guias, não emite NF. O envio para o convênio é por meio do Motoboy. Pagamento após 30 dias do faturamento.", "faturamento": "Todo dia 08 de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "consulta R$ 150,00", "medicosAptos": "Todos os médicos", "diaEntrega": 10, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Cópia - Moto Boy - não emite NF", "dadosBancarios": [{"cnpj": "82.612.953/0001-75", "nome": "Sindicato dos Mecânicos", "banco": null, "agencia": null, "conta": null}]}, {"nome": "REBARVILLE", "email": "contato@rebarville.com.br", "telefone": "34275537/34246114", "comoRecebeGuias": "Recebe as guias, faz as conferências e guarda na pasta, faturamento dependendo do volume é semanal. Como o faturamento dia 01 de cada mês, Faz o envio das Guias com folha de rosto e nota encaminha por email. Pagamento todo dia 10 do mês subsequente. emite nota apos conferencia do convenio", "medicosAptos": "Todos os médicos", "diaEntrega": 5, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Digitaliza - envia por email", "dadosBancarios": [{"cnpj": "05.928.202/0001-11", "nome": "Rebarville", "banco": null, "agencia": null, "conta": null}]}, {"nome": "SINDICATO DOS TRANSPORTES RODOVIÁRIOS", "contato": "ADRIANA", "email": "sindipas@terra.com.br", "telefone": "(47)99667-5995 / 4734228589", "telefoneObs": "Eliane", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, datas jan 20 - fev 18 - mar 19 - abril 17 - maio 19- Jun 17 - Julho 18 - agos 20 - set 17 -out 20 - nov 18 - dez 08, confere todas as guias, faz uma folha de rosto, anexa as guia e emite a NF. Envia por meio do motoboy, guias, folha de rosto e NF e o pagamento é após 30 dias do faturamento. Pagamento ocorre entre 10 a 15 do mês seguinte a data de entrega das faturas. UNICO SINDICATO QUE FAZEMOS EXAMES E CIRURGIA", "faturamento": "Datas jan 20 - fev 18 - mar 19 - abril 17 - maio 19- Jun 17 - Julho 18 - agos 20 - set 17 -out 20 - nov 18 - dez 08", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "consulta R$ 220,00 CIRURGIAS VER TABELA", "medicosAptos": "Todos os médicos", "diaEntrega": 18, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Cópia - gera NF - envia Moto Boy", "dadosBancarios": [{"cnpj": "81.159.931/0001-39", "nome": "Sindicato dos Transportes Rodoviário", "banco": null, "agencia": null, "conta": null}]}, {"nome": "SINDICATO DA SAÚDE", "contato": "UNIMED JOINVILLE", "telefone": "47991867507", "telefoneObs": "ELENIR", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 25 de cada mês, confere todas as guias, faz uma folha de rosto, não emite NF e envia por meio de motoboy: folha de rosto e guias para a Unimed Joinville que paga junto com a produção do PF do DR Carlo. Pagamento com 30 dias após faturamento.", "faturamento": "Todo dia 1º enviar malote para a Unimed Joiville", "comoConvenioPaga": "PJ - IOCW /TED -Santander HUB/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "medicosAptos": "Todos os médicos", "diaEntrega": 1, "previsaoRecebimento": "30 DIAS", "diasFaturarObs": "Cópia - envia Moto Boy", "dadosBancarios": [{"cnpj": "83.628.628/0001-63", "nome": "Sindicato da Saúde", "banco": null, "agencia": null, "conta": null}]}, {"nome": "SINDICATO DOS PLÁSTICOS", "contato": "sem contato", "email": "recepcao@sindicatoplasticos.com.br", "telefone": "(47) 3422-4298", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 1º de cada mês, confere todas as guias, faz uma folha de rosto, emite NF e envia por MOTOBOY: folha de rosto, guias e NF para o convênio. Pagamento no dia 20 do mes subsequente após faturamento.", "faturamento": "Todo dia 1º de cada mês", "faturamentoObs": "Emite NF para pagamento", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "consulta R$ 150,00", "medicosAptos": "Todos os médicos", "diaEntrega": 1, "previsaoRecebimento": "dia 10", "diasFaturarObs": "Cópia - gera NF - envia Moto Boy", "datasDiferentes": "abril 17 - maio 19- Jun 17 - Julho 18 agos 20 - set 17 -out 20 - nov 18 - dez 08", "dadosBancarios": [{"cnpj": "83.796.813/0001-67", "nome": "Sindicato dos Plásticos", "banco": null, "agencia": null, "conta": null}]}, {"nome": "SINDICATO DOS QUÍMICOS", "contato": "GERALDO", "email": "sindicatodosquimicosjoinville@gmail.com", "telefone": "4734333823", "telefoneObs": "ALCIONE", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 30 de cada mês(ultimo dia do mes), confere todas as guias, faz uma folha de rosto, não emite NF e envia por meio de motoboy: folha de rosto e guias para o convênio. Pagamento com 30 dias após faturamento.", "faturamento": "Todo dia 1º de cada mês", "comoConvenioPaga": "PJ - IOCW /Dinheiro", "reajuste": "Reajuste Janeiro/2025", "medicosAptos": "Todos os médicos", "diaEntrega": 1, "previsaoRecebimento": "dia 10", "diasFaturarObs": "Digitaliza - envia Moto Boy", "dadosBancarios": [{"cnpj": "pagamento em mãos", "nome": "Sindicato dos Químicos", "banco": null, "agencia": null, "conta": null}]}, {"nome": "SINDICATO DE CARGAS", "contato": "Lidiane (47)99915-6384", "email": "Sindicato02@expresso.com.br", "comoRecebeGuias": "Recebe as guias diariamente quanto há atendimento e guarda na pasta do convênio, no dia do faturamento 1º de cada mês, confere todas as guias, faz uma folha de rosto e envia por meio de motoboy: folha de rosto e guias para o convênio. A NF é emitida após a conferência do convênio que avisa via e-mail e libera para emitir a NF. Pagamento com 30 dias após faturamento.", "faturamento": "Todo dia 1º de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "consulta R$ 150,00", "medicosAptos": "Todos os médicos", "diaEntrega": 1, "previsaoRecebimento": "dia 10", "diasFaturarObs": "Cópia - Moto Boy - NF após conferencia", "dadosBancarios": [{"cnpj": "83.545.061/0001-61", "nome": "Sindicato dos Transportes de Cargas", "banco": null, "agencia": null, "conta": null}]}, {"nome": "EMPRESA TERMETAL", "contato": "RH", "email": "(47)3424-6535", "comoRecebeGuias": "Recebe as guias diariamente quando há atendimento, confere e guarda na pasta para faturamento até o dia 01/mês. No dia do faturamento, faz uma folha de rosto, tira cópia e manda as guias originais para o convênio via motoboy. Após a conferência do convênio geramos NF ate dia 10 e o pagamento ocorre ate dia 20 de cada mes", "faturamento": "Todo dia 27 de cada mês", "comoConvenioPaga": "PJ - IOCW /TED -Santander IO/ pgto via banco", "reajuste": "Reajuste Janeiro/2025", "observacoes": "consulta R", "medicosAptos": "Todos os médicos", "diaEntrega": 27, "previsaoRecebimento": "dia 10 NF dia15 pgto", "diasFaturarObs": "Cópia - gera NF e boleto dia 10- envia Moto Boy", "dadosBancarios": [{"cnpj": "00.748.691/0001-06", "nome": "Termetal", "banco": null, "agencia": null, "conta": null}]}];
+const SINDICATOS_PAGO_NO_ATO = [{"nome": "SINDITEX", "email": "administrativo@sinditex.org.br", "telefone": "(47) 3433 – 0660", "responsavel": "Luciane", "endereco": "Orestes Guimarães, 355 - Bairro América – 89204-060 - Inscr. Estadual: Isento - CNPJ: 84.717.701/0001-36 - Joinville – SC"}, {"nome": "SINDITHERME", "email": "jessicavarela@sinditherme.com.br", "telefone": "(47) 3433-6004 - (47) 3433-3435", "responsavel": "Jessica", "endereco": "Rua Conselheiro Mafra 102 | Centro - Joinville.SC | CEP 89201-480"}, {"nome": "SIND. SERV. PUBLICOS", "email": "financeiro@sinsej.org.br", "telefone": "(47) 3433-6966", "responsavel": "Cristian", "endereco": "Endereço: R. Lages, 84 - Centro, Joinville - SC, 89201-205"}, {"nome": "SINDICATO DO COMERCIO", "email": "central@comerciarios.net", "telefone": "47 3205-9333", "responsavel": "Lilian", "endereco": "R. Sete de Setembro, 74 - Centro, Joinville - SC, 89201-200"}, {"nome": "SIND. IND. QUIMICOS", "email": "sindicatos.secretaria@acij.com", "telefone": "(47) 3433-3823", "responsavel": "abre as 13", "endereco": "R. Min. Calógeras, 1157 - Anita Garibaldi, Joinville - SC, 89202-005"}, {"nome": "SIND. DOS METALURGICOS", "email": "atendimento.sind@terra.com.br", "telefone": "(47) 3033-2100", "responsavel": "Mariana", "endereco": "R. Rio das Antas, 370 - Comasa, Joinville - SC, 89228-020"}, {"nome": "SINTRAVEST", "telefone": "(47) 3433-9364", "responsavel": "abre 14:30", "endereco": "Endereço: R. Aracaju, 877 - Saguaçu, Joinville - SC, 89221-500"}, {"nome": "SINDI. DOS BANCARIOS", "email": "contato@bancariosjoinville.com.br", "telefone": "47 9723-2128", "endereco": "R. 9 de Março, 724 - Centro, Joinville - SC, 89201-400"}, {"nome": "SINEECAT", "telefone": "(47) 3455-0830", "endereco": "R. Mário Lobo, 61 - Centro, Joinville - SC, 89201-330"}, {"nome": "SIND. DOS MECANICOS", "email": "financeiro1@sindmecanicos.org.br", "telefone": "(47) 3027-1183 recepção - (47) 9 9272-2133 Adriana", "responsavel": "ADRIANA", "endereco": "Rua João Antônio Schadeck, 100 - Costa e Silva"}];
+
+function cardParceiro(p){
+  let linhas = '';
+  if(p.diaEntrega) linhas += `<div class="login-row"><span class="login-label">Dia de entrega/faturamento</span><span class="login-valor">${p.diaEntrega}</span></div>`;
+  if(p.previsaoRecebimento) linhas += `<div class="login-row"><span class="login-label">Previsão de recebimento</span><span class="login-valor">${p.previsaoRecebimento}</span></div>`;
+  if(p.diasFaturarObs) linhas += `<div class="login-row"><span class="login-label">Como enviar</span><span class="login-valor">${p.diasFaturarObs}</span></div>`;
+  if(p.datasDiferentes) linhas += `<div class="login-row"><span class="login-label">Datas diferentes</span><span class="login-valor">${p.datasDiferentes}</span></div>`;
+  if(p.contato) linhas += `<div class="login-row"><span class="login-label">Contato</span><span class="login-valor">${p.contato}</span></div>`;
+  if(p.email) linhas += `<div class="login-row"><span class="login-label">E-mail</span><span class="login-valor">${p.email}</span></div>`;
+  if(p.telefone) linhas += `<div class="login-row"><span class="login-label">Telefone</span><span class="login-valor">${p.telefone}${p.telefoneObs ? ' (' + p.telefoneObs + ')' : ''}</span></div>`;
+  if(p.faturamento) linhas += `<div class="login-row"><span class="login-label">Ciclo de faturamento</span><span class="login-valor">${p.faturamento}${p.faturamentoObs ? ' — ' + p.faturamentoObs : ''}</span></div>`;
+  if(p.comoRecebeGuias) linhas += `<div class="login-row"><span class="login-label">Como recebemos/enviamos</span><span class="login-valor">${p.comoRecebeGuias}</span></div>`;
+  if(p.comoConvenioPaga) linhas += `<div class="login-row"><span class="login-label">Como paga</span><span class="login-valor">${p.comoConvenioPaga}</span></div>`;
+  if(p.reajuste) linhas += `<div class="login-row"><span class="login-label">Reajuste</span><span class="login-valor">${p.reajuste}</span></div>`;
+  if(p.medicosAptos) linhas += `<div class="login-row"><span class="login-label">Médicos autorizados</span><span class="login-valor">${p.medicosAptos}</span></div>`;
+  if(p.observacoes) linhas += `<div class="login-row"><span class="login-label">Observações</span><span class="login-valor">${p.observacoes}</span></div>`;
+  let bancario = '';
+  if(p.dadosBancarios && p.dadosBancarios.length){
+    bancario = p.dadosBancarios.map(b => {
+      const partes = [b.cnpj ? 'CNPJ ' + b.cnpj : null, b.banco ? 'Banco ' + b.banco : null, b.agencia ? 'Ag ' + b.agencia : null, b.conta ? 'CC ' + b.conta : null].filter(Boolean).join(' · ');
+      return `<div class="login-row"><span class="login-label">${b.nome || 'Dados bancários'}</span><span class="login-valor">${partes}</span></div>`;
+    }).join('');
+  }
+  return `<div class="login-card"><p class="login-rotulo">${p.nome}</p>${linhas}${bancario}</div>`;
+}
+
+function renderParceiros(){
+  const box = root.querySelector('#parceirosResult');
+  const termo = (root.querySelector('#searchParceiros').value || '').trim().toLowerCase();
+  const lista = termo ? PARCEIROS_FATURAMENTO.filter(p => p.nome.toLowerCase().includes(termo)) : PARCEIROS_FATURAMENTO;
+  if(lista.length === 0){
+    box.innerHTML = '<div class="result-empty">Nenhum parceiro encontrado para essa busca.</div>';
+    return;
+  }
+  box.innerHTML = lista.map(cardParceiro).join('');
+}
+
+function renderSindicatosAto(){
+  const box = root.querySelector('#sindicatosAtoResult');
+  box.innerHTML = SINDICATOS_PAGO_NO_ATO.map(s => {
+    let linhas = '';
+    if(s.responsavel) linhas += `<div class="login-row"><span class="login-label">Responsável</span><span class="login-valor">${s.responsavel}</span></div>`;
+    if(s.email) linhas += `<div class="login-row"><span class="login-label">E-mail</span><span class="login-valor">${s.email}</span></div>`;
+    if(s.telefone) linhas += `<div class="login-row"><span class="login-label">Telefone</span><span class="login-valor">${s.telefone}</span></div>`;
+    if(s.endereco) linhas += `<div class="login-row"><span class="login-label">Endereço</span><span class="login-valor">${s.endereco}</span></div>`;
+    return `<div class="login-card"><p class="login-rotulo">${s.nome}</p>${linhas}</div>`;
+  }).join('');
+}
+
+root.querySelector('#searchParceiros').addEventListener('input', renderParceiros);
+renderParceiros();
+renderSindicatosAto();
 
 })();
 </script>
@@ -2427,6 +2517,7 @@ function renderContatosConvenioAz(){
         <button type="button" class="convenio-menu-item active" data-painel="tabela"><span class="cmi-icon">📋</span>Tabelas de Exames e valores</button>
         <button type="button" class="convenio-menu-item" data-painel="checklist"><span class="cmi-icon">✅</span>Checklist Atendimento</button>
         <button type="button" class="convenio-menu-item" data-painel="contatos"><span class="cmi-icon">📞</span>Contatos e Setores</button>
+        <button type="button" class="convenio-menu-item" data-painel="medicos"><span class="cmi-icon">🩺</span>Médicos Autorizados</button>
         <button type="button" class="convenio-menu-item" data-painel="avisos"><span class="cmi-icon">📋</span>Avisos e Comunicados</button>
       </nav>
       <div class="convenio-conteudo">
@@ -2438,6 +2529,7 @@ function renderContatosConvenioAz(){
         <div class="convenio-painel hub-oculto" id="painelChecklistConvenio"></div>
         <div class="convenio-painel hub-oculto" id="painelLoginConvenio"></div>
         <div class="convenio-painel hub-oculto" id="painelContatosConvenio"></div>
+        <div class="convenio-painel hub-oculto" id="painelMedicosConvenio"></div>
         <div class="convenio-painel hub-oculto" id="painelAvisosConvenio"></div>
       </div>
     </div>
@@ -2499,7 +2591,12 @@ function renderContatosConvenioAz(){
   let DATA_EXAMES = {};
   const CONVENIOS_EXAMES = ["AMIL", "BRADESCO", "DATAMED", "DOCTOR MAIS", "DOHLER", "GEAP", "JOFUNDI-FREMAX", "LABORE", "LEVMED", "MEDSERVICE", "NOSSA SAUDE", "PARTICULAR", "PREVILLE", "REBARVILLE", "REDE MAIS", "SAUDE CAIXA", "SC SAUDE", "SELECT SAUDE", "SINDICATO DAS CARGAS", "SINDICATO DOS MECÂNICOS", "SINDICATO DOS PLÁSTICOS", "SINDICATO DOS QUÍMICOS", "SINDICATO DOS TRANSPORTES", "SINDICATO SAÚDE", "SOCIAL", "SULAMERICA", "TERMETAL", "UNIMED ESTADUAL", "UNIMED JLLE", "UNIMED NACIONAL", "VIDA LITORAL"];
   let PACOTES_EXAMES = {};
-  const MEDICOS_APTOS_EXAMES = {"AMIL":"Consulta e exames no sistema e no portal: somente Dr. Carlo Gustavo de Castro Wille. Convênio cadastrado no CPF dele — não há outro médico credenciado.","UNIMED ESTADUAL":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","UNIMED JLLE":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","UNIMED NACIONAL":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","BRADESCO":"Consultas e exames: Dr. Carlo, Dra. Mariana, Dr. Jose Eduardo Cassou, Dra. Cássia. Apenas médicos com RQE são autorizados a consultar e realizar exames.","GEAP":"Consultas e exames: Dr. Carlo Gustavo de Castro Wille, Dra. Mariana Corte Real Neves, Dr. Eduardo Teodoro Dohler Becker, Dr. Francisco de Carvalho Stocco.","NOSSA SAUDE":"Consultas e exames: Dr. Carlo Gustavo de Castro Wille, Dra. Mariana Corte Real Neves, Dr. Jose Eduardo Cassou.","SELECT SAUDE":"Consultas e exames: Dr. Carlo, Dr. Jose Eduardo Cassou, Dra. Mariana Corte Real.","SC SAUDE":"Consultas e exames: Dr. Carlo, Dra. Mariana Corte Real, Dr. Amilton dos Santos Irigaray, Dr. Jose Eduardo Cassou."};
+  const MEDICOS_APTOS_EXAMES = {"AMIL":"Consulta e exames no sistema e no portal: somente Dr. Carlo Gustavo de Castro Wille. Convênio cadastrado no CPF dele — não há outro médico credenciado.","UNIMED ESTADUAL":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","UNIMED JLLE":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","UNIMED NACIONAL":"Consultas e exames: Dr. Carlo e Dra. Mariana Corte Real. Somente médicos cadastrados na Unimed são autorizados a realizar.","BRADESCO":"Consultas e exames: Dr. Carlo, Dra. Mariana, Dr. Jose Eduardo Cassou, Dra. Cássia. Apenas médicos com RQE são autorizados a consultar e realizar exames.","GEAP":"Consultas e exames: Dr. Carlo Gustavo de Castro Wille, Dra. Mariana Corte Real Neves, Dr. Eduardo Teodoro Dohler Becker, Dr. Francisco de Carvalho Stocco.","NOSSA SAUDE":"Consultas e exames: Dr. Carlo Gustavo de Castro Wille, Dra. Mariana Corte Real Neves, Dr. Jose Eduardo Cassou.","SELECT SAUDE":"Consultas e exames: Dr. Carlo, Dr. Jose Eduardo Cassou, Dra. Mariana Corte Real.","SC SAUDE":"Consultas e exames: Dr. Carlo, Dra. Mariana Corte Real, Dr. Amilton dos Santos Irigaray, Dr. Jose Eduardo Cassou.","SAUDE CAIXA":"Consultas e exames: Dr Carlo.","LEVMED":"Consultas e exames: DR Carlo e Dr José Eduardo Cassou, Dr Mariana.","MEDSERVICE":"Consultas e exames: DR Carlo.","SULAMERICA":"Consultas e exames: Dr Carlo."};
+  // Empresas/sindicatos (planilha DETALHES CONVENIOS_faturamento.xlsx, aba
+  // "Contato convenio", 16/09/2026): confirmado que TODOS liberam qualquer
+  // médico pra consulta/exame - regra geral, sem exceção encontrada na
+  // planilha. Convênio que não está nem em MEDICOS_APTOS_EXAMES nem aqui
+  // cai no texto genérico (ver renderMedicosConvenio) por falta de dado.
 
   const ULTIMA_ATUALIZACAO_EXAMES = '11/09/2026';
   // Manuais de referência da AMIL usados pelos links das etapas do checklist.
@@ -2771,10 +2868,12 @@ function renderContatosConvenioAz(){
     root.querySelector('#painelChecklistConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'checklist');
     root.querySelector('#painelLoginConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'login');
     root.querySelector('#painelContatosConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'contatos');
+    root.querySelector('#painelMedicosConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'medicos');
     root.querySelector('#painelAvisosConvenio').classList.toggle('hub-oculto', painelAtivoConvenio !== 'avisos');
     if(painelAtivoConvenio === 'checklist') renderChecklistConvenio();
     if(painelAtivoConvenio === 'login') renderLoginConvenio();
     if(painelAtivoConvenio === 'contatos') renderContatosConvenio();
+    if(painelAtivoConvenio === 'medicos') renderMedicosConvenio();
     if(painelAtivoConvenio === 'avisos' && window.HubComunicados){
       window.HubComunicados.renderPainelEmbutido(root.querySelector('#painelAvisosConvenio'), 'hub_area_exames', selConvenio);
     }
@@ -2972,6 +3071,37 @@ function renderContatosConvenioAz(){
         </div>`;
     }).join('');
     box.innerHTML = head + cards;
+  }
+
+  // Convênios que a planilha DETALHES CONVENIOS_faturamento.xlsx (aba
+  // "Contato convenio", 16/09/2026) confirma como empresa/sindicato -
+  // regra do usuário: "no caso de empresas e sindicatos todos os médicos
+  // podem atendem consultas e exames". Qualquer nome com "SINDICATO"
+  // cai na mesma regra, mesmo sem estar nesta lista.
+  const EMPRESAS_SINDICATOS_TODOS_MEDICOS = new Set([
+    "DOHLER", "LABORE", "JOFUNDI-FREMAX", "REBARVILLE", "TERMETAL"
+  ]);
+  function renderMedicosConvenio(){
+    const box = root.querySelector('#painelMedicosConvenio');
+    const head = `
+      <div class="result-head">
+        <div class="rh-left">
+          <p class="rh-eyebrow">Médicos Autorizados</p>
+          <h3>Quem pode atender esse convênio</h3>
+        </div>
+        <span class="rh-convenio">${selConvenio}</span>
+      </div>`;
+    const dado = MEDICOS_APTOS_EXAMES[selConvenio];
+    if(dado){
+      box.innerHTML = head + `<div class="login-card"><div class="login-row"><span class="login-valor">${dado}</span></div></div>`;
+      return;
+    }
+    const ehEmpresaOuSindicato = EMPRESAS_SINDICATOS_TODOS_MEDICOS.has(selConvenio) || /SINDICATO/i.test(selConvenio || '');
+    if(ehEmpresaOuSindicato){
+      box.innerHTML = head + `<div class="login-card"><div class="login-row"><span class="login-valor">Todos os médicos podem atender consultas e exames.</span></div></div>`;
+      return;
+    }
+    box.innerHTML = head + `<div class="result-empty">Médicos autorizados ainda não cadastrados para ${selConvenio}.</div>`;
   }
 
   const examesMasterMap = {};
