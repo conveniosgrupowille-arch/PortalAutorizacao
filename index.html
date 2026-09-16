@@ -171,6 +171,10 @@
   #tabPorParceiro{display:none;}
   #stepsSindicatosAto.convenio-selecionado > .step:first-child{display:none;}
   #tabPorSindicatoAto{display:none;}
+  #stepsFarmacia.convenio-selecionado > .step:first-child{display:none;}
+  #tabPorCirurgiaFarmacia{display:none;}
+  #stepsContaAberta.convenio-selecionado > .step:first-child{display:none;}
+  #tabPorCirurgiaContaAberta{display:none;}
   .step-title-clickable:hover{color:var(--teal-600);}
   .step-help{
     font-size:12.5px;
@@ -783,8 +787,15 @@
     <button type="button" id="chooser-btn-farmacia" class="hub-card hub-card-lock">
       <span class="hub-card-lockbadge" title="Acesso restrito"><span class="material-symbols-outlined hub-icon-sm">lock</span></span>
       <div class="hub-card-icone"><span class="material-symbols-outlined">medication</span></div>
-      <h3>Farmácia / Conta Aberta</h3>
-      <p>Conciliação de materiais e medicamentos: kit da cirurgia batido contra a tabela do convênio.</p>
+      <h3>Farmácia</h3>
+      <p>Cadastro de produtos e kit de materiais/medicamentos de cada cirurgia.</p>
+      <span class="hub-card-tag hub-card-tag-lock">Acesso restrito</span>
+    </button>
+    <button type="button" id="chooser-btn-conta-aberta" class="hub-card hub-card-lock">
+      <span class="hub-card-lockbadge" title="Acesso restrito"><span class="material-symbols-outlined hub-icon-sm">lock</span></span>
+      <div class="hub-card-icone"><span class="material-symbols-outlined">request_quote</span></div>
+      <h3>Conta Aberta</h3>
+      <p>Busca o kit da farmácia e concilia os códigos com a tabela do convênio escolhido.</p>
       <span class="hub-card-tag hub-card-tag-lock">Acesso restrito</span>
     </button>
   </div>
@@ -2255,6 +2266,7 @@ window.__setDadosConciliacao = function(produtos, procedimentos, memoria){
   CA_PROCEDIMENTOS = procedimentos || [];
   CA_MEMORIA = memoria || [];
   renderConciliacaoProcedimentoGrid();
+  renderFarmaciaProcedimentoGrid();
 };
 
 function produtoPorCodigoCA(codigo){
@@ -2281,6 +2293,10 @@ function renderConciliacaoProcedimentoGrid(){
     btn.innerHTML = `<span class="chip-name">${p.nome}</span><span class="chip-code mono">${(p.itens || []).length} item(ns)</span>`;
     btn.addEventListener('click', () => {
       selConciliacaoProcedimento = p.id;
+      const steps = document.querySelector('#stepsContaAberta');
+      const pill = document.querySelector('#tabPorCirurgiaContaAberta');
+      if(steps) steps.classList.add('convenio-selecionado');
+      if(pill) pill.style.display = 'inline-block';
       renderConciliacaoProcedimentoGrid();
       renderConciliacaoResult();
     });
@@ -2396,6 +2412,211 @@ document.querySelector('#searchConciliacaoProcedimento').addEventListener('input
 renderConciliacaoConvenioGrid();
 renderConciliacaoResult();
 
+document.querySelector('#tabPorCirurgiaContaAberta').addEventListener('click', () => {
+  selConciliacaoProcedimento = null;
+  document.querySelector('#stepsContaAberta').classList.remove('convenio-selecionado');
+  document.querySelector('#tabPorCirurgiaContaAberta').style.display = 'none';
+  renderConciliacaoProcedimentoGrid();
+  renderConciliacaoResult();
+});
+
+// ============================================
+// FARMÁCIA — kit de materiais e medicamentos EDITÁVEL (16/09/2026, pedido
+// do usuário: "a farmácia monta os kit de cirurgias" + "campos editáveis
+// para a farmácia atualizar"). Card separado de "Conta Aberta" (que faz a
+// conciliação com o convênio) — aqui é só cadastro/manutenção do kit em
+// si (quais produtos + quantidade), sem nenhum valor de convênio.
+// ============================================
+let selFarmaciaProcedimento = null;
+let farmaciaKitEditando = false;
+let farmaciaKitEdicaoTemp = null;
+
+function getIdentidadeFarmacia(){
+  try{
+    const raw = sessionStorage.getItem('hub_area_farmacia');
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    return (s && s.nome && s.senha) ? {nome: s.nome, senha: s.senha} : null;
+  }catch(e){ return null; }
+}
+
+function renderFarmaciaProcedimentoGrid(){
+  const grid = document.querySelector('#farmaciaProcedimentoGrid');
+  if(!grid) return;
+  if(!CA_PROCEDIMENTOS.length){
+    grid.innerHTML = '<div class="result-empty">Carregando…</div>';
+    return;
+  }
+  const termo = (document.querySelector('#searchFarmaciaProcedimento').value || '').trim().toLowerCase();
+  const lista = termo ? CA_PROCEDIMENTOS.filter(p => p.nome.toLowerCase().includes(termo)) : CA_PROCEDIMENTOS;
+  if(lista.length === 0){
+    grid.innerHTML = '<div class="result-empty">Nenhuma cirurgia encontrada para essa busca.</div>';
+    return;
+  }
+  grid.innerHTML = '';
+  lista.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'chip' + (selFarmaciaProcedimento === p.id ? ' selected' : '');
+    btn.innerHTML = `<span class="chip-name">${p.nome}</span><span class="chip-code mono">${(p.itens || []).length} item(ns)</span>`;
+    btn.addEventListener('click', () => {
+      selFarmaciaProcedimento = p.id;
+      farmaciaKitEditando = false;
+      farmaciaKitEdicaoTemp = null;
+      const steps = document.querySelector('#stepsFarmacia');
+      const pill = document.querySelector('#tabPorCirurgiaFarmacia');
+      if(steps) steps.classList.add('convenio-selecionado');
+      if(pill) pill.style.display = 'inline-block';
+      renderFarmaciaProcedimentoGrid();
+      renderFarmaciaKit();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function renderFarmaciaKit(){
+  const box = document.querySelector('#farmaciaKitResult');
+  if(!box) return;
+  if(!selFarmaciaProcedimento){
+    box.innerHTML = '<div class="result-empty">Selecione a cirurgia acima para ver ou editar o kit.</div>';
+    return;
+  }
+  const procedimento = CA_PROCEDIMENTOS.find(p => p.id === selFarmaciaProcedimento);
+  if(!procedimento) return;
+  const itens = farmaciaKitEditando ? farmaciaKitEdicaoTemp : (procedimento.itens || []);
+  const head = `
+    <div class="result-head">
+      <div class="rh-left">
+        <p class="rh-eyebrow">Kit de materiais e medicamentos</p>
+        <h3>${procedimento.nome}</h3>
+      </div>
+    </div>`;
+
+  if(!farmaciaKitEditando){
+    const linhas = itens.map(it => {
+      const produto = produtoPorCodigoCA(it.codigo);
+      const nome = produto ? produto.descricao_produto : (it.descricaoLivre || it.codigo || '—');
+      return `<tr><td>${nome}</td><td class="mono">${it.codigo || '—'}</td><td class="mono">${it.quantidade}</td></tr>`;
+    }).join('');
+    box.innerHTML = `${head}
+      <div style="overflow-x:auto;">
+      <table class="items">
+        <thead><tr><th>Item</th><th>Código interno</th><th>Qtd</th></tr></thead>
+        <tbody>${linhas || '<tr><td colspan="3">Nenhum item cadastrado.</td></tr>'}</tbody>
+      </table>
+      </div>
+      <div class="com-botoes" style="justify-content:flex-start; margin-top:14px;">
+        <button type="button" class="com-btn com-btn-primario" id="btnEditarKitFarmacia">Editar kit</button>
+      </div>`;
+    document.querySelector('#btnEditarKitFarmacia').addEventListener('click', () => {
+      farmaciaKitEditando = true;
+      farmaciaKitEdicaoTemp = JSON.parse(JSON.stringify(itens));
+      renderFarmaciaKit();
+    });
+    return;
+  }
+
+  const linhasEdit = itens.map((it, idx) => {
+    const produto = produtoPorCodigoCA(it.codigo);
+    const nome = produto ? produto.descricao_produto : (it.descricaoLivre || it.codigo || '—');
+    return `<tr>
+      <td>${nome}</td>
+      <td class="mono">${it.codigo || '—'}</td>
+      <td><input type="number" min="0" step="1" class="com-input" style="width:80px;" data-idx="${idx}" value="${it.quantidade}"></td>
+      <td><button type="button" class="com-link-btn" data-remover="${idx}">Remover</button></td>
+    </tr>`;
+  }).join('');
+  box.innerHTML = `${head}
+    <div style="overflow-x:auto;">
+    <table class="items">
+      <thead><tr><th>Item</th><th>Código interno</th><th>Qtd</th><th></th></tr></thead>
+      <tbody id="farmaciaKitEditTbody">${linhasEdit || '<tr><td colspan="4">Nenhum item cadastrado ainda.</td></tr>'}</tbody>
+    </table>
+    </div>
+    <div style="margin-top:14px;">
+      <label class="com-label">Adicionar item (buscar produto)</label>
+      <input type="text" id="farmaciaAdicionarBusca" class="com-input" placeholder="Nome do produto…" list="farmaciaProdutosList">
+      <datalist id="farmaciaProdutosList">${CA_PRODUTOS.map(p => `<option value="${(p.descricao_produto || '').replace(/"/g,'&quot;')}">`).join('')}</datalist>
+      <div style="display:flex; gap:10px; margin-top:8px; align-items:center;">
+        <input type="number" id="farmaciaAdicionarQtd" class="com-input" style="width:100px;" placeholder="Qtd" min="1" value="1">
+        <button type="button" class="com-btn com-btn-secundario" id="btnAdicionarItemFarmacia">+ Adicionar</button>
+      </div>
+    </div>
+    <p class="com-erro hub-oculto" id="farmaciaKitErro"></p>
+    <div class="com-botoes">
+      <button type="button" class="com-btn com-btn-secundario" id="btnCancelarKitFarmacia">Cancelar</button>
+      <button type="button" class="com-btn com-btn-primario" id="btnSalvarKitFarmacia">Salvar kit</button>
+    </div>`;
+
+  document.querySelectorAll('#farmaciaKitEditTbody input[data-idx]').forEach(input => {
+    input.addEventListener('input', () => {
+      farmaciaKitEdicaoTemp[Number(input.dataset.idx)].quantidade = Number(input.value) || 0;
+    });
+  });
+  document.querySelectorAll('[data-remover]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      farmaciaKitEdicaoTemp.splice(Number(btn.dataset.remover), 1);
+      renderFarmaciaKit();
+    });
+  });
+  document.querySelector('#btnAdicionarItemFarmacia').addEventListener('click', () => {
+    const buscaInput = document.querySelector('#farmaciaAdicionarBusca');
+    const qtdInput = document.querySelector('#farmaciaAdicionarQtd');
+    const nomeDigitado = buscaInput.value.trim();
+    const produto = CA_PRODUTOS.find(p => p.descricao_produto === nomeDigitado);
+    const erro = document.querySelector('#farmaciaKitErro');
+    if(!produto){
+      erro.textContent = 'Selecione um produto válido da lista (clique numa sugestão).';
+      erro.classList.remove('hub-oculto');
+      return;
+    }
+    erro.classList.add('hub-oculto');
+    farmaciaKitEdicaoTemp.push({codigo: produto.codigo, quantidade: Number(qtdInput.value) || 1});
+    buscaInput.value = '';
+    qtdInput.value = '1';
+    renderFarmaciaKit();
+  });
+  document.querySelector('#btnCancelarKitFarmacia').addEventListener('click', () => {
+    farmaciaKitEditando = false;
+    farmaciaKitEdicaoTemp = null;
+    renderFarmaciaKit();
+  });
+  document.querySelector('#btnSalvarKitFarmacia').addEventListener('click', async () => {
+    const btnSalvar = document.querySelector('#btnSalvarKitFarmacia');
+    const erro = document.querySelector('#farmaciaKitErro');
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Salvando…';
+    try{
+      const auth = getIdentidadeFarmacia();
+      if(!auth) throw new Error('Faça login novamente.');
+      await rpcFat('ca_atualizar_procedimento_itens', {p_nome: auth.nome, p_senha: auth.senha, p_id: selFarmaciaProcedimento, p_itens: farmaciaKitEdicaoTemp});
+      procedimento.itens = farmaciaKitEdicaoTemp;
+      farmaciaKitEditando = false;
+      farmaciaKitEdicaoTemp = null;
+      renderFarmaciaProcedimentoGrid();
+      renderFarmaciaKit();
+    }catch(e){
+      erro.textContent = 'Erro ao salvar: ' + e.message;
+      erro.classList.remove('hub-oculto');
+      btnSalvar.disabled = false;
+      btnSalvar.textContent = 'Salvar kit';
+    }
+  });
+}
+
+document.querySelector('#searchFarmaciaProcedimento').addEventListener('input', renderFarmaciaProcedimentoGrid);
+renderFarmaciaProcedimentoGrid();
+renderFarmaciaKit();
+
+document.querySelector('#tabPorCirurgiaFarmacia').addEventListener('click', () => {
+  selFarmaciaProcedimento = null;
+  farmaciaKitEditando = false;
+  farmaciaKitEdicaoTemp = null;
+  document.querySelector('#stepsFarmacia').classList.remove('convenio-selecionado');
+  document.querySelector('#tabPorCirurgiaFarmacia').style.display = 'none';
+  renderFarmaciaProcedimentoGrid();
+  renderFarmaciaKit();
+});
+
 })();
 </script>
 <div id="view-farmacia" class="view-portal hub-oculto">
@@ -2408,15 +2629,72 @@ renderConciliacaoResult();
       <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
       <div class="brand-text">
         <p class="eyebrow">HUB LASER · FARMÁCIA</p>
-        <h1>Conciliação de Materiais</h1>
+        <h1>Kits de Materiais e Medicamentos</h1>
       </div>
     </div>
-    <p class="hero-sub">Kit de materiais e medicamentos da cirurgia, comparado com a tabela de preço do convênio.</p>
+    <p class="hero-sub">Cadastro de produtos e kit de cada cirurgia — mantido pela farmácia. A conciliação com a tabela do convênio fica no card "Conta Aberta".</p>
   </div>
 </div>
 
 <main>
 
+  <div class="pacote-tabs">
+    <button type="button" class="pacote-tab active" id="tabPorCirurgiaFarmacia">Por cirurgia</button>
+  </div>
+
+  <div id="stepsFarmacia">
+  <div class="step active" id="stepFarmaciaProcedimento">
+    <div class="step-head">
+      <span class="step-num">1</span>
+      <h2>Cirurgia/procedimento</h2>
+      <span class="step-help">Escolha a cirurgia para ver ou editar o kit de materiais e medicamentos.</span>
+    </div>
+    <input type="text" id="searchFarmaciaProcedimento" class="search-input" placeholder="Buscar por nome da cirurgia…">
+    <div class="chip-grid" id="farmaciaProcedimentoGrid"></div>
+  </div>
+  </div>
+
+  <div class="step">
+    <div class="step-head">
+      <span class="step-num">2</span>
+      <h2>Kit de materiais e medicamentos</h2>
+    </div>
+    <div class="result" id="farmaciaKitResult">
+      <div class="result-empty">Selecione a cirurgia acima para ver ou editar o kit.</div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <strong>Cadastro de produtos e kits da Farmácia.</strong> Dados migrados do sistema "Ficha Cirurgias Farmácia-Faturamento" (kit de cada cirurgia, cadastro de produtos). Edite o kit de uma cirurgia clicando em "Editar kit" — a mudança já vale pra próxima conciliação no card "Conta Aberta".
+</footer>
+
+</div>
+<div id="view-conta-aberta" class="view-portal hub-oculto">
+<button type="button" class="hub-btn-voltar" data-voltar>&larr; Trocar de portal</button>
+
+<div class="hero">
+  <div class="hero-scrim"></div>
+  <div class="hero-inner">
+    <div class="brand">
+      <div class="bars"><span></span><span></span><span></span><span></span><span></span></div>
+      <div class="brand-text">
+        <p class="eyebrow">HUB LASER · FATURAMENTO</p>
+        <h1>Conta Aberta — Conciliação com Convênio</h1>
+      </div>
+    </div>
+    <p class="hero-sub">Kit de materiais e medicamentos da cirurgia (mantido pela farmácia), comparado com a tabela de preço do convênio.</p>
+  </div>
+</div>
+
+<main>
+
+  <div class="pacote-tabs">
+    <button type="button" class="pacote-tab active" id="tabPorCirurgiaContaAberta">Por cirurgia</button>
+  </div>
+
+  <div id="stepsContaAberta">
   <div class="step active" id="stepConciliacaoProcedimento">
     <div class="step-head">
       <span class="step-num">1</span>
@@ -2425,6 +2703,7 @@ renderConciliacaoResult();
     </div>
     <input type="text" id="searchConciliacaoProcedimento" class="search-input" placeholder="Buscar por nome da cirurgia…">
     <div class="chip-grid" id="conciliacaoProcedimentoGrid"></div>
+  </div>
   </div>
 
   <div class="step" id="stepConciliacaoConvenio">
@@ -2449,7 +2728,7 @@ renderConciliacaoResult();
 </main>
 
 <footer>
-  <strong>Conciliação de Materiais e Medicamentos.</strong> Dados migrados do sistema "Ficha Cirurgias Farmácia-Faturamento" (kit de cada cirurgia, cadastro de produtos, tabelas de preço de SC Saúde/Unimed/Brasíndice e memória de decisões manuais). Primeira versão: só consulta — importar tabela nova e editar a memória continuam feitos fora do Portal por enquanto.
+  <strong>Conciliação de Materiais e Medicamentos — Conta Aberta.</strong> Compara o kit da cirurgia (produtos + quantidades cadastrados pela farmácia) com a tabela de preço de SC Saúde/Unimed/Brasíndice e a memória de decisões manuais. Primeira versão: só consulta — importar tabela nova continua feito fora do Portal por enquanto.
 </footer>
 
 </div>
@@ -4215,6 +4494,7 @@ function renderContatosConvenioAz(){
   var viewAz = document.getElementById('view-autorizacao');
   var viewExames = document.getElementById('view-autorizacao-exames');
   var viewFarmacia = document.getElementById('view-farmacia');
+  var viewContaAberta = document.getElementById('view-conta-aberta');
   var senhaTitulo = document.getElementById('senha-titulo');
   var senhaDescricao = document.getElementById('senha-descricao');
   var senhaNome = document.getElementById('senha-nome');
@@ -4229,7 +4509,7 @@ function renderContatosConvenioAz(){
     senhaInput.type = mostrando ? 'password' : 'text';
     senhaOlhoIcone.textContent = mostrando ? 'visibility' : 'visibility_off';
   });
-  var telas = [chooser, overlay, viewFat, viewAz, viewExames, viewFarmacia];
+  var telas = [chooser, overlay, viewFat, viewAz, viewExames, viewFarmacia, viewContaAberta];
 
   var AREAS = {
     faturamento: {
@@ -4318,9 +4598,29 @@ function renderContatosConvenioAz(){
         });
       },
     },
+    contaAberta: {
+      view: viewContaAberta,
+      titulo: 'Área restrita — Conta Aberta',
+      descricao: 'Esta área contém valores e é restrita ao setor de faturamento. Informe seu nome e senha para continuar.',
+      chaveSessao: 'hub_area_faturamento',
+      nomes: ['Andreia', 'Artur', 'Carolline', 'Gabriel', 'Isolete Salus', 'Eduarda Salus', 'Sandra Salus'],
+      carregarDados: function(nome, senha){
+        return Promise.all([
+          sb.rpc('ca_get_produtos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_procedimentos', { p_nome: nome, p_senha: senha }),
+          sb.rpc('ca_get_memoria', { p_nome: nome, p_senha: senha }),
+        ]).then(function(results){
+          var caProdutosRes = results[0], caProcedimentosRes = results[1], caMemoriaRes = results[2];
+          if(caProdutosRes.error) throw caProdutosRes.error;
+          if(caProcedimentosRes.error) throw caProcedimentosRes.error;
+          if(caMemoriaRes.error) throw caMemoriaRes.error;
+          window.__setDadosConciliacao(caProdutosRes.data || [], caProcedimentosRes.data || [], caMemoriaRes.data || []);
+        });
+      },
+    },
     farmacia: {
       view: viewFarmacia,
-      titulo: 'Área restrita — Farmácia / Conta Aberta',
+      titulo: 'Área restrita — Farmácia',
       descricao: 'Esta área é restrita à farmácia e ao faturamento. Informe seu nome e senha para continuar.',
       chaveSessao: 'hub_area_farmacia',
       nomes: ['Karla', 'Andreia', 'Artur', 'Carolline'],
@@ -4444,6 +4744,7 @@ function renderContatosConvenioAz(){
   document.getElementById('chooser-btn-autorizacao').addEventListener('click', function(){ abrirArea('autorizacao'); });
   document.getElementById('chooser-btn-autorizacao-exames').addEventListener('click', function(){ abrirArea('exames'); });
   document.getElementById('chooser-btn-farmacia').addEventListener('click', function(){ abrirArea('farmacia'); });
+  document.getElementById('chooser-btn-conta-aberta').addEventListener('click', function(){ abrirArea('contaAberta'); });
   senhaConfirmarBtn.addEventListener('click', confirmarSenha);
   document.getElementById('senha-cancelar').addEventListener('click', function(){ mostrar(chooser); });
   senhaInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ confirmarSenha(); } });
