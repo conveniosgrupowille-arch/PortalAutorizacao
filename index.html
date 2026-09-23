@@ -1269,17 +1269,24 @@ function getAvisos(keys, convenio){
   return AVISOS.filter(a => a.convenio === convenio && keys.includes(a.cirurgia));
 }
 
-function pacoteTamanho(p){
-  // usado só para ordenar por especificidade (tenta os pacotes maiores/mais completos primeiro)
-  if(p.itemCodes) return p.itemCodes.length;
-  if(p.principal && p.alternativos) return 1 + p.alternativos.length;
+function pacoteTamanho(p, codeSet){
+  // "tamanho" real = quantos códigos desse pacote realmente aparecem no conjunto selecionado
+  // (não o tamanho máximo possível) - assim um pacote genérico "principal+1 alternativo" não
+  // ganha de um pacote mais específico que casa com TODOS os seus códigos (ex: Vitrectomia+
+  // Endolaser+Retinopexia juntos tem que casar com o pacote dos 3, não com um pacote genérico
+  // que só usaria 2 deles).
+  if(p.itemCodes) return p.itemCodes.filter(c => codeSet.has(c)).length;
+  if(p.principal && p.alternativos){
+    if(!codeSet.has(p.principal)) return 0;
+    return 1 + p.alternativos.filter(c => codeSet.has(c)).length;
+  }
   return 0;
 }
 
 function findMatchedPacotes(effectiveCodes, convenio){
   const remaining = new Set(effectiveCodes);
   const pool = PACOTES.filter(p => p.convenio === convenio);
-  const sorted = pool.slice().sort((a, b) => pacoteTamanho(b) - pacoteTamanho(a));
+  const sorted = pool.slice().sort((a, b) => pacoteTamanho(b, remaining) - pacoteTamanho(a, remaining));
   const matched = [];
   const consumed = new Set();
   sorted.forEach(p => {
@@ -3347,17 +3354,24 @@ function getAvisos(keys, convenio){
   return AVISOS.filter(a => a.convenio === convenio && keys.includes(a.cirurgia));
 }
 
-function pacoteTamanho(p){
-  // usado só para ordenar por especificidade (tenta os pacotes maiores/mais completos primeiro)
-  if(p.itemCodes) return p.itemCodes.length;
-  if(p.principal && p.alternativos) return 1 + p.alternativos.length;
+function pacoteTamanho(p, codeSet){
+  // "tamanho" real = quantos códigos desse pacote realmente aparecem no conjunto selecionado
+  // (não o tamanho máximo possível) - assim um pacote genérico "principal+1 alternativo" não
+  // ganha de um pacote mais específico que casa com TODOS os seus códigos (ex: Vitrectomia+
+  // Endolaser+Retinopexia juntos tem que casar com o pacote dos 3, não com um pacote genérico
+  // que só usaria 2 deles).
+  if(p.itemCodes) return p.itemCodes.filter(c => codeSet.has(c)).length;
+  if(p.principal && p.alternativos){
+    if(!codeSet.has(p.principal)) return 0;
+    return 1 + p.alternativos.filter(c => codeSet.has(c)).length;
+  }
   return 0;
 }
 
 function findMatchedPacotes(effectiveCodes, convenio){
   const remaining = new Set(effectiveCodes);
   const pool = PACOTES.filter(p => p.convenio === convenio);
-  const sorted = pool.slice().sort((a, b) => pacoteTamanho(b) - pacoteTamanho(a));
+  const sorted = pool.slice().sort((a, b) => pacoteTamanho(b, remaining) - pacoteTamanho(a, remaining));
   const matched = [];
   const consumed = new Set();
   sorted.forEach(p => {
